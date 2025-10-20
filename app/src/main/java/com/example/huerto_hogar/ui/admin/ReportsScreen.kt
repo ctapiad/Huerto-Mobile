@@ -16,7 +16,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.*
+import androidx.compose.ui.platform.LocalContext
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.model.User
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.model.Pedido
+import com.example.huerto_hogar.data.enums.UserRole
+import com.example.huerto_hogar.data.enums.OrderStatus
 import com.example.huerto_hogar.util.FormatUtils
 import kotlin.math.*
 
@@ -24,10 +30,12 @@ import kotlin.math.*
  * Pantalla de reportes y estadísticas para administradores
  */
 @Composable
-fun ReportsScreen() {
-    val users by LocalDataRepository.users.collectAsState()
-    val products by LocalDataRepository.products.collectAsState()
-    val pedidos by LocalDataRepository.pedidos.collectAsState()
+fun ReportsScreen(
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+) {
+    val users by databaseRepository.getAllUsers().collectAsState(initial = emptyList())
+    val products by databaseRepository.getAllProducts().collectAsState(initial = emptyList())
+    val pedidos by databaseRepository.getAllOrders().collectAsState(initial = emptyList())
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -60,7 +68,7 @@ fun ReportsScreen() {
 
         // Ventas recientes (solo pedidos entregados)
         item {
-            RecentSalesCard(pedidos.filter { it.status == OrderStatus.ENTREGADO })
+            RecentSalesCard(users, pedidos.filter { it.status == OrderStatus.ENTREGADO })
         }
     }
 }
@@ -437,7 +445,7 @@ fun TopProductsCard(products: List<Product>) {
 }
 
 @Composable
-fun RecentSalesCard(pedidos: List<Pedido>) {
+fun RecentSalesCard(users: List<User>, pedidos: List<Pedido>) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -506,7 +514,8 @@ fun RecentSalesCard(pedidos: List<Pedido>) {
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 pedidos.sortedByDescending { it.deliveryDate ?: it.orderDate }.take(3).forEach { pedido ->
-                    val user = LocalDataRepository.getUserById(pedido.userId)
+                    // Buscar usuario correspondiente desde la lista de usuarios ya cargada
+                    val user = users.find { it.id == pedido.userId }
                     val dateFormat = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale("es", "CL"))
                     
                     Row(

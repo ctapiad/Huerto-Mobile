@@ -1,96 +1,30 @@
 package com.example.huerto_hogar.data
 
-import java.util.Date
+// ⚠️ ARCHIVO DEPRECADO ⚠️
+// Este archivo ha sido dividido en archivos separados para mejor organización:
 
-// Tablas de catálogo y enumeraciones
-enum class UserRole(val id: Long) {
-    ADMIN(1), VENDEDOR(2), CLIENTE(3)
-}
+// Enums:
+// - UserRole -> data/enums/UserRole.kt
+// - OrderStatus -> data/enums/OrderStatus.kt
 
-enum class OrderStatus(val id: Long) {
-    PENDIENTE(1), PREPARACION(2), ENVIADO(3), ENTREGADO(4), CANCELADO(5)
-}
+// Modelos principales:
+// - User -> data/model/User.kt
+// - Product -> data/model/Product.kt
+// - Pedido -> data/model/Pedido.kt
+// - DetallePedido -> data/model/DetallePedido.kt
 
-data class Region(
-    val id: Long,
-    val name: String
-)
+// Catálogos:
+// - Categoria -> data/catalog/Categoria.kt
+// - Region -> data/catalog/Region.kt
+// - Comuna -> data/catalog/Comuna.kt
 
-data class Comuna(
-    val id: Long,
-    val name: String,
-    val regionId: Long
-)
+// DTOs y lógica de negocio:
+// - CartItem -> data/dto/CartItem.kt
+// - AdminReports -> data/dto/AdminReports.kt
 
-data class Categoria(
-    val id: Long,
-    val name: String,
-    val description: String?
-)
-
-// Tablas principales
-data class User(
-    val id: Long,
-    var name: String,
-    val email: String,
-    var password: String,
-    val registrationDate: Date,
-    var address: String?,
-    var phone: Int?,
-    var comunaId: Long,
-    val role: UserRole
-)
-
-data class Product(
-    val id: String,
-    var name: String,
-    var imageName: String?,
-    var description: String?,
-    var price: Double,
-    var stock: Int,
-    var origin: String?,
-    var isOrganic: Boolean,
-    var isActive: Boolean,
-    val entryDate: Date,
-    val categoryId: Long,
-    var priceUnit: String = "kg" // Unidad de precio por defecto
-)
-
-data class Pedido(
-    val id: Long,
-    val orderDate: Date,
-    var deliveryDate: Date?,
-    val total: Double,
-    val deliveryAddress: String,
-    val userId: Long,
-    var status: OrderStatus
-)
-
-data class DetallePedido(
-    val pedidoId: Long,
-    val productId: String,
-    val cantidad: Int,
-    val precioUnitario: Double,
-    val subtotal: Double
-)
-
-// --- CLASES PARA LA LÓGICA DE LA APP ---
-
-// Ítem dentro del carrito de compras
-data class CartItem(
-    val product: Product,
-    var quantity: Int
-)
-
-// Clase de datos para reportes de administrador
-data class AdminReports(
-    val totalUsers: Int,
-    val totalProducts: Int,
-    val activeProducts: Int,
-    val totalOrders: Int,
-    val completedOrders: Int,
-    val totalSales: Double,
-    val inventoryValue: Double,
-    val lowStockProducts: List<Product>,
-    val topProducts: List<Product>
-)
+// EXPORTS para compatibilidad temporal (eliminar después de migrar)
+import com.example.huerto_hogar.data.enums.UserRole
+import com.example.huerto_hogar.data.enums.OrderStatus
+import com.example.huerto_hogar.data.model.*
+import com.example.huerto_hogar.data.catalog.*
+import com.example.huerto_hogar.data.dto.*

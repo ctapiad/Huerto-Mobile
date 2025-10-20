@@ -17,20 +17,25 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.*
+import kotlinx.coroutines.launch
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.enums.OrderStatus
+import com.example.huerto_hogar.data.model.User
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.model.Pedido
+import com.example.huerto_hogar.data.model.DetallePedido
 import com.example.huerto_hogar.util.FormatUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OrderManagementScreen() {
+fun OrderManagementScreen(
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+) {
     var selectedFilter by remember { mutableStateOf<OrderStatus?>(null) }
-    var refreshTrigger by remember { mutableStateOf(0) }
     
-    val allOrders = remember(refreshTrigger) {
-        LocalDataRepository.getAllOrders()
-    }
+    val allOrders by databaseRepository.getAllOrders().collectAsState(initial = emptyList())
     
     val filteredOrders = if (selectedFilter != null) {
         allOrders.filter { it.status == selectedFilter }
@@ -123,22 +128,10 @@ fun OrderManagementScreen() {
                     items(filteredOrders) { order ->
                         AdminOrderCard(
                             order = order,
-                            onStatusChange = { orderId, newStatus ->
-                                val success = LocalDataRepository.updateOrderStatus(orderId, newStatus)
-                                if (success) {
-                                    Toast.makeText(
-                                        context, 
-                                        "Estado actualizado a ${getStatusDisplayName(newStatus)}", 
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    refreshTrigger++ // Trigger refresh
-                                } else {
-                                    Toast.makeText(
-                                        context, 
-                                        "Error al actualizar el estado", 
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
+                            databaseRepository = databaseRepository,
+                            onStatusChange = { _, _ ->
+                                // La lógica de actualización se maneja dentro de AdminOrderCard
+                                // Este callback se puede usar para refrescar la UI si es necesario
                             }
                         )
                     }
@@ -197,14 +190,21 @@ fun OrderStatusFilters(
 @Composable
 fun AdminOrderCard(
     order: Pedido,
+    databaseRepository: DatabaseRepository,
     onStatusChange: (Long, OrderStatus) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     var showStatusDialog by remember { mutableStateOf(false) }
     val dateFormat = SimpleDateFormat("dd/MM/yyyy - HH:mm", Locale("es", "CL"))
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     
     // Obtener información del usuario
-    val user = LocalDataRepository.getUserById(order.userId)
+    var user by remember { mutableStateOf<User?>(null) }
+    
+    LaunchedEffect(order.userId) {
+        user = databaseRepository.getUserById(order.userId)
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -314,7 +314,7 @@ fun AdminOrderCard(
                 )
                 if (user?.phone != null) {
                     Text(
-                        text = "📱 ${user.phone}",
+                        text = "📱 ${user?.phone}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 16.dp)
@@ -347,10 +347,22 @@ fun AdminOrderCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                val orderDetails = LocalDataRepository.getOrderDetails(order.id)
+                var orderDetails by remember { mutableStateOf<List<DetallePedido>>(emptyList()) }
+                var products by remember { mutableStateOf<Map<String, Product>>(emptyMap()) }
+                
+                LaunchedEffect(order.id) {
+                    orderDetails = databaseRepository.getOrderDetails(order.id)
+                    val productMap = mutableMapOf<String, Product>()
+                    orderDetails.forEach { detail ->
+                        databaseRepository.getProductById(detail.productId)?.let { product ->
+                            productMap[detail.productId] = product
+                        }
+                    }
+                    products = productMap
+                }
+                
                 orderDetails.forEach { detail ->
-                    val product = LocalDataRepository.getProductById(detail.productId)
-                    product?.let { prod ->
+                    products[detail.productId]?.let { prod ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -383,7 +395,23 @@ fun AdminOrderCard(
         StatusChangeDialog(
             currentStatus = order.status,
             onStatusSelected = { newStatus ->
-                onStatusChange(order.id, newStatus)
+                coroutineScope.launch {
+                    val success = databaseRepository.updateOrderStatus(order.id, newStatus)
+                    if (success) {
+                        Toast.makeText(
+                            context, 
+                            "Estado actualizado a ${getStatusDisplayName(newStatus)}", 
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onStatusChange(order.id, newStatus) // Notificar al parent si es necesario
+                    } else {
+                        Toast.makeText(
+                            context, 
+                            "Error al actualizar el estado", 
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
                 showStatusDialog = false
             },
             onDismiss = { showStatusDialog = false }

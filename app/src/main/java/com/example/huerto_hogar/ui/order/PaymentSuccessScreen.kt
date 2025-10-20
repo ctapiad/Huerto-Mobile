@@ -18,6 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.example.huerto_hogar.data.LocalDataRepository
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.model.Pedido
+import com.example.huerto_hogar.data.model.DetallePedido
 import com.example.huerto_hogar.util.FormatUtils
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -29,14 +32,29 @@ fun PaymentSuccessScreen(
     orderId: Long
 ) {
     var countdown by remember { mutableStateOf(5) }
+    var orderDetails by remember { mutableStateOf<List<DetallePedido>>(emptyList()) }
+    var actualTotal by remember { mutableStateOf(0.0) }
+    var deliveryFee by remember { mutableStateOf(0.0) }
+    var productsMap by remember { mutableStateOf<Map<String, Product>>(emptyMap()) }
 
     // Obtener detalles del pedido
-    val orderDetails = remember { LocalDataRepository.getOrderDetails(orderId) }
-    
-    // Calcular el total correcto basándose en el pedido real
-    val actualTotal = remember(orderId) {
+    LaunchedEffect(orderId) {
+        orderDetails = LocalDataRepository.getOrderDetails(orderId)
         val order = LocalDataRepository.getOrderById(orderId)
-        order?.total ?: 0.0
+        actualTotal = order?.total ?: 0.0
+        
+        // Obtener fee de delivery
+        deliveryFee = LocalDataRepository.getOrderDeliveryFee(orderId)
+        
+        // Obtener todos los productos de los detalles
+        val productIds = orderDetails.map { it.productId }.distinct()
+        val products = mutableMapOf<String, Product>()
+        productIds.forEach { productId ->
+            LocalDataRepository.getProductById(productId)?.let { product ->
+                products[productId] = product
+            }
+        }
+        productsMap = products
     }
     
     // Formatear el total real en lugar de usar el parámetro
@@ -174,7 +192,7 @@ fun PaymentSuccessScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     
                     orderDetails.forEach { detail ->
-                        val product = LocalDataRepository.getProductById(detail.productId)
+                        val product = productsMap[detail.productId]
                         product?.let { prod ->
                             Row(
                                 modifier = Modifier
@@ -199,7 +217,6 @@ fun PaymentSuccessScreen(
                     }
 
                     // Mostrar costo de envío
-                    val deliveryFee = orderId?.let { LocalDataRepository.getOrderDeliveryFee(it) } ?: 0.0
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
