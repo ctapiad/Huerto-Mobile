@@ -23,7 +23,7 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE role = :role")
     fun getUsersByRole(role: UserRole): Flow<List<UserEntity>>
     
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity): Long
     
     @Update

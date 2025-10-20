@@ -44,7 +44,7 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
     productViewModel: ProductViewModel = viewModel(),
-    cartViewModel: CartViewModel = viewModel()
+    cartViewModel: CartViewModel
 ) {
     val productUiState by productViewModel.uiState.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()

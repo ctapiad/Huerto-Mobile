@@ -28,6 +28,12 @@ fun AdminDashboard(
     val currentUser by authViewModel.currentUser.collectAsState()
     var selectedTabIndex by remember { mutableStateOf(0) }
 
+    // Debug: Verificar el usuario actual
+    LaunchedEffect(currentUser) {
+        println("DEBUG AdminDashboard: currentUser = $currentUser")
+        println("DEBUG AdminDashboard: role = ${currentUser?.role}")
+    }
+
     // Verificar que el usuario es administrador
     if (currentUser?.role != UserRole.ADMIN) {
         UnauthorizedAccess()

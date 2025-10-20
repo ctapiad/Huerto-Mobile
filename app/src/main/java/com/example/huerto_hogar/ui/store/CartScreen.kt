@@ -37,9 +37,9 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 fun CartScreen(
     onCheckout: () -> Unit = {},
     onLoginRequired: () -> Unit = {},
-    onPaymentSuccess: (String, String, Long) -> Unit = { _, _, _ -> }
+    onPaymentSuccess: (String, String, Long) -> Unit = { _, _, _ -> },
+    cartViewModel: CartViewModel
 ) {
-    val cartViewModel: CartViewModel = viewModel()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val currentUser by cartViewModel.currentUser.collectAsState()
     val context = LocalContext.current

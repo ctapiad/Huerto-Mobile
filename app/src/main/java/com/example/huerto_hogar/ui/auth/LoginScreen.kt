@@ -18,6 +18,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.platform.LocalContext
 import com.example.huerto_hogar.data.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -26,13 +28,19 @@ fun LoginScreen(
     // Función que se ejecuta cuando el login es exitoso
     onLoginSuccess: (User) -> Unit,
     // Nueva función que se ejecuta al presionar el botón de "atrás"
-    onNavigateBack: () -> Unit,
-    // Instancia del ViewModel, no cambia
-    loginViewModel: LoginViewModel = viewModel()
+    onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val loginViewModel: LoginViewModel = viewModel(
+        factory = object : ViewModelProvider.AndroidViewModelFactory(context.applicationContext as android.app.Application) {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return LoginViewModel(context.applicationContext as android.app.Application) as T
+            }
+        }
+    )
     // 1. Recolecta el estado del ViewModel (sin cambios)
     val uiState by loginViewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     // 2. Observa el estado para manejar eventos (sin cambios)
     LaunchedEffect(uiState) {

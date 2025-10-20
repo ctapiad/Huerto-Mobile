@@ -20,9 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.data.LocalDataRepository
 import com.example.huerto_hogar.data.model.User
 import com.example.huerto_hogar.data.enums.UserRole
+import com.example.huerto_hogar.viewmodel.CartViewModel
 import com.example.huerto_hogar.ui.auth.LoginScreen
 import com.example.huerto_hogar.ui.store.HomeScreen
 import com.example.huerto_hogar.ui.store.ProductListScreen
@@ -77,6 +79,9 @@ fun AppNavigation() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by LocalDataRepository.currentUser.collectAsState()
+    
+    // ViewModel compartido del carrito para toda la aplicación
+    val sharedCartViewModel: CartViewModel = viewModel()
 
     // Ahora el splash screen se maneja automáticamente por el sistema Android
     ModalNavigationDrawer(
@@ -136,7 +141,8 @@ fun AppNavigation() {
                     HomeScreen(
                         onNavigateToCart = {
                             navController.navigate(Routes.CART)
-                        }
+                        },
+                        cartViewModel = sharedCartViewModel
                     )
                 }
 
@@ -145,9 +151,14 @@ fun AppNavigation() {
                 composable(Routes.LOGIN) {
                     LoginScreen(
                         onLoginSuccess = { user ->
-                            val route = if (user.role == UserRole.ADMIN) Routes.ADMIN_DASHBOARD else Routes.HOME
-                            navController.navigate(route) {
-                                popUpTo(Routes.HOME) { inclusive = user.role == UserRole.ADMIN }
+                            if (user.role == UserRole.ADMIN) {
+                                navController.navigate(Routes.ADMIN_DASHBOARD) {
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Routes.HOME) {
+                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                }
                             }
                         },
                         onNavigateBack = { navController.popBackStack() }
@@ -162,7 +173,8 @@ fun AppNavigation() {
                         },
                         onNavigateToCart = {
                             navController.navigate(Routes.CART)
-                        }
+                        },
+                        cartViewModel = sharedCartViewModel
                     )
                 }
 
@@ -175,7 +187,8 @@ fun AppNavigation() {
                         },
                         onPaymentSuccess = { orderNumber, totalAmount, orderId ->
                             navController.navigate("${Routes.PAYMENT_SUCCESS}/$orderNumber/$totalAmount/$orderId")
-                        }
+                        },
+                        cartViewModel = sharedCartViewModel
                     )
                 }
 

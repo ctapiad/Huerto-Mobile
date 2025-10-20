@@ -22,14 +22,21 @@ class DatabaseRepository(context: Context) {
     // Método para poblar la base de datos con datos del LocalDataRepository
     suspend fun initializeWithLocalData() {
         // Solo poblar si la base de datos está vacía
-        val existingUsers = userDao.getAllUsers()
-        // Para verificar si está vacía, necesitamos convertir el Flow
-        // Por simplicidad, insertamos siempre (Room manejará duplicados si usamos REPLACE)
-        
-        insertInitialCategories()
-        insertInitialUsers()
-        insertInitialProducts()
-        insertInitialOrdersAndDetails()
+        try {
+            // Verificar si ya hay categorías
+            val categoryCount = categoryDao.getCategoryCount()
+            
+            // Solo insertar datos si la base de datos está vacía
+            if (categoryCount == 0) {
+                insertInitialCategories()
+                insertInitialUsers()
+                insertInitialProducts()
+                insertInitialOrdersAndDetails()
+            }
+        } catch (e: Exception) {
+            // Si hay algún error, no hacer nada para evitar crashes
+            println("Error inicializando datos: ${e.message}")
+        }
     }
     
     private suspend fun insertInitialCategories() {
