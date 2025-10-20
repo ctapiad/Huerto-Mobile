@@ -28,11 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.example.huerto_hogar.R
-import com.example.huerto_hogar.data.Product
+import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
+import com.example.huerto_hogar.viewmodel.CartViewModel
 
 /**
  * La pantalla de inicio renovada con carrusel de productos destacados,
@@ -40,9 +42,12 @@ import com.example.huerto_hogar.util.FormatUtils
  */
 @Composable
 fun HomeScreen(
-    onNavigateToCart: () -> Unit = {}
+    onNavigateToCart: () -> Unit = {},
+    productViewModel: ProductViewModel = viewModel(),
+    cartViewModel: CartViewModel = viewModel()
 ) {
-    val cartItems by com.example.huerto_hogar.data.LocalDataRepository.shoppingCart.collectAsState()
+    val productUiState by productViewModel.uiState.collectAsState()
+    val cartItems by cartViewModel.cartItems.collectAsState()
     
     // Calcular el total de productos en el carrito
     val cartItemCount = cartItems.values.sumOf { it.quantity }
@@ -62,7 +67,12 @@ fun HomeScreen(
             
             // Carrusel de productos destacados
             item {
-                FeaturedProductsCarousel()
+                FeaturedProductsCarousel(
+                    products = productUiState.products,
+                    onAddToCart = { product, quantity ->
+                        cartViewModel.addToCart(product, quantity)
+                    }
+                )
             }
             
             // Información adicional sobre la aplicación
@@ -75,7 +85,7 @@ fun HomeScreen(
                 FooterSection()
             }
         }
-        
+
         // FAB con contador de carrito
         FloatingActionButton(
             onClick = { onNavigateToCart() },
@@ -83,6 +93,7 @@ fun HomeScreen(
                 .align(Alignment.BottomEnd)
                 .padding(16.dp),
             containerColor = Color(0xFF4CAF50)
+
         ) {
             Box {
                 Icon(
@@ -144,8 +155,10 @@ fun WelcomeSection() {
 }
 
 @Composable
-fun FeaturedProductsCarousel() {
-    val products by com.example.huerto_hogar.data.LocalDataRepository.products.collectAsState()
+fun FeaturedProductsCarousel(
+    products: List<Product>,
+    onAddToCart: (Product, Int) -> Result<Unit>
+) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     
@@ -199,7 +212,7 @@ fun FeaturedProductsCarousel() {
                 FeaturedProductCard(
                     product = product,
                     onAddToCart = { quantity ->
-                        val result = com.example.huerto_hogar.data.LocalDataRepository.addToCart(product, quantity)
+                        val result = onAddToCart(product, quantity)
                         result.onSuccess {
                             Toast.makeText(context, "${product.name} (x$quantity) añadido al carrito", Toast.LENGTH_SHORT).show()
                         }

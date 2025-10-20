@@ -21,8 +21,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.huerto_hogar.data.LocalDataRepository
-import com.example.huerto_hogar.data.User
-import com.example.huerto_hogar.data.UserRole
+import com.example.huerto_hogar.data.model.User
+import com.example.huerto_hogar.data.enums.UserRole
 import com.example.huerto_hogar.ui.auth.LoginScreen
 import com.example.huerto_hogar.ui.store.HomeScreen
 import com.example.huerto_hogar.ui.store.ProductListScreen

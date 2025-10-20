@@ -18,7 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.huerto_hogar.data.User
+import com.example.huerto_hogar.data.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

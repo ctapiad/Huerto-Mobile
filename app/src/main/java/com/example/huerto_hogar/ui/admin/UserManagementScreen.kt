@@ -19,16 +19,23 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.huerto_hogar.data.*
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.model.User
+import com.example.huerto_hogar.data.enums.UserRole
 import java.util.Date
 
 /**
  * Pantalla de gestión de usuarios para administradores
  */
 @Composable
-fun UserManagementScreen() {
-    val users by LocalDataRepository.users.collectAsState()
+fun UserManagementScreen(
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+) {
+    val users by databaseRepository.getAllUsers().collectAsState(initial = emptyList())
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<User?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -82,7 +89,9 @@ fun UserManagementScreen() {
                         showEditDialog = true
                     },
                     onDelete = { userToDelete ->
-                        LocalDataRepository.deleteUser(userToDelete.id)
+                        coroutineScope.launch {
+                            databaseRepository.deleteUser(userToDelete.id)
+                        }
                         Toast.makeText(context, "Usuario eliminado", Toast.LENGTH_SHORT).show()
                     }
                 )
@@ -96,7 +105,9 @@ fun UserManagementScreen() {
             user = null,
             onDismiss = { showCreateDialog = false },
             onSave = { newUser ->
-                LocalDataRepository.createUser(newUser)
+                coroutineScope.launch {
+                    databaseRepository.registerUser(newUser)
+                }
                 showCreateDialog = false
                 Toast.makeText(context, "Usuario creado exitosamente", Toast.LENGTH_SHORT).show()
             }
@@ -111,7 +122,9 @@ fun UserManagementScreen() {
                 selectedUser = null
             },
             onSave = { updatedUser ->
-                LocalDataRepository.updateUser(updatedUser)
+                coroutineScope.launch {
+                    databaseRepository.updateUser(updatedUser)
+                }
                 showEditDialog = false
                 selectedUser = null
                 Toast.makeText(context, "Usuario actualizado exitosamente", Toast.LENGTH_SHORT).show()

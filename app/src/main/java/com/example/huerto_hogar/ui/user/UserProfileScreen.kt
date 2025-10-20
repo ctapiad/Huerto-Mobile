@@ -16,17 +16,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import com.example.huerto_hogar.data.LocalDataRepository
+import com.example.huerto_hogar.data.model.User
+import com.example.huerto_hogar.data.enums.UserRole
+import com.example.huerto_hogar.viewmodel.AuthViewModel
 
 /**
  * Pantalla de perfil de usuario donde puede ver y editar sus datos
  */
 @Composable
 fun UserProfileScreen(
-    onLoginRequired: () -> Unit = {}
+    onLoginRequired: () -> Unit = {},
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    val currentUser by LocalDataRepository.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     if (currentUser == null) {
         NoUserProfileCard(onLoginRequired = onLoginRequired)
@@ -201,9 +208,15 @@ fun UserProfileScreen(
                                     address = address.ifEmpty { null },
                                     phone = phone.toIntOrNull()
                                 )
-                                LocalDataRepository.updateUser(updatedUser)
-                                isEditing = false
-                                Toast.makeText(context, "Perfil actualizado exitosamente", Toast.LENGTH_SHORT).show()
+                                coroutineScope.launch {
+                                    val success = LocalDataRepository.updateUser(updatedUser)
+                                    if (success) {
+                                        isEditing = false
+                                        Toast.makeText(context, "Perfil actualizado exitosamente", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Error al actualizar perfil", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             },
                             modifier = Modifier.weight(1f),
                             enabled = name.isNotEmpty() && password.isNotEmpty()

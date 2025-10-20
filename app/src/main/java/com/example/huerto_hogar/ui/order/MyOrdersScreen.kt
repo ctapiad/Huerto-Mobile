@@ -17,17 +17,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import com.example.huerto_hogar.data.LocalDataRepository
+import com.example.huerto_hogar.data.model.Pedido
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.model.DetallePedido
+import com.example.huerto_hogar.data.enums.OrderStatus
 import com.example.huerto_hogar.util.FormatUtils
+import com.example.huerto_hogar.viewmodel.AuthViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyOrdersScreen() {
-    val currentUser by LocalDataRepository.currentUser.collectAsState()
-    val userOrders = remember(currentUser) {
-        LocalDataRepository.getCurrentUserOrders()
+fun MyOrdersScreen(
+    authViewModel: AuthViewModel = viewModel()
+) {
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    var userOrders by remember { mutableStateOf<List<Pedido>>(emptyList()) }
+    
+    // Cargar pedidos cuando cambie el usuario
+    LaunchedEffect(currentUser) {
+        if (currentUser != null) {
+            userOrders = LocalDataRepository.getCurrentUserOrders()
+        }
     }
 
     Surface(
@@ -246,9 +261,19 @@ fun OrderCard(order: Pedido) {
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                val orderDetails = LocalDataRepository.getOrderDetails(order.id)
+                var orderDetails by remember { mutableStateOf<List<DetallePedido>>(emptyList()) }
+                
+                LaunchedEffect(order.id) {
+                    orderDetails = LocalDataRepository.getOrderDetails(order.id)
+                }
+                
                 orderDetails.forEach { detail ->
-                    val product = LocalDataRepository.getProductById(detail.productId)
+                    var product by remember { mutableStateOf<Product?>(null) }
+                    
+                    LaunchedEffect(detail.productId) {
+                        product = LocalDataRepository.getProductById(detail.productId)
+                    }
+                    
                     product?.let { prod ->
                         Row(
                             modifier = Modifier
@@ -275,7 +300,11 @@ fun OrderCard(order: Pedido) {
                 }
 
                 // Mostrar costo de envío
-                val deliveryFee = LocalDataRepository.getOrderDeliveryFee(order.id)
+                var deliveryFee by remember { mutableStateOf(0.0) }
+                
+                LaunchedEffect(order.id) {
+                    deliveryFee = LocalDataRepository.getOrderDeliveryFee(order.id)
+                }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

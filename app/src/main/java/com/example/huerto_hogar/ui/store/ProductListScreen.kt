@@ -19,9 +19,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.R
-import com.example.huerto_hogar.data.*
+import com.example.huerto_hogar.data.LocalDataRepository
+import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
+import com.example.huerto_hogar.viewmodel.CartViewModel
 
 /**
  * Pantalla principal de productos con filtros por categoría y FAB del carrito
@@ -29,12 +32,13 @@ import com.example.huerto_hogar.util.FormatUtils
 @Composable
 fun ProductListScreen(
     onLoginRequired: () -> Unit,
-    onNavigateToCart: () -> Unit = {}
+    onNavigateToCart: () -> Unit = {},
+    productViewModel: ProductViewModel = viewModel(),
+    cartViewModel: CartViewModel = viewModel()
 ) {
-    val products by LocalDataRepository.products.collectAsState()
-    val categories by LocalDataRepository.categories.collectAsState()
+    val productUiState by productViewModel.uiState.collectAsState()
+    val cartItems by cartViewModel.cartItems.collectAsState()
     val currentUser by LocalDataRepository.currentUser.collectAsState()
-    val cartItems by LocalDataRepository.shoppingCart.collectAsState()
     val context = LocalContext.current
     
     var selectedCategoryId by remember { mutableStateOf<Long?>(null) }
@@ -44,9 +48,9 @@ fun ProductListScreen(
     
     // Filtrar productos según la categoría seleccionada
     val filteredProducts = if (selectedCategoryId == null) {
-        products.filter { it.isActive }
+        productUiState.products.filter { it.isActive }
     } else {
-        products.filter { it.isActive && it.categoryId == selectedCategoryId }
+        productUiState.products.filter { it.isActive && it.categoryId == selectedCategoryId }
     }
     
     Box(modifier = Modifier.fillMaxSize()) {
@@ -99,7 +103,7 @@ fun ProductListScreen(
                             selected = selectedCategoryId == null
                         )
                     }
-                    items(categories) { category ->
+                    items(productUiState.categories) { category ->
                         FilterChip(
                             onClick = { selectedCategoryId = category.id },
                             label = { Text(category.name) },
@@ -151,8 +155,8 @@ fun ProductListScreen(
                     product = product,
                     isLoggedIn = currentUser != null,
                     onAddToCart = { productToAdd, quantity ->
-                        // Usar directamente el repositorio para actualizaciones en tiempo real
-                        val result = LocalDataRepository.addToCart(productToAdd, quantity)
+                        // Usar CartViewModel para actualizaciones en tiempo real
+                        val result = cartViewModel.addToCart(productToAdd, quantity)
                         result.onSuccess {
                             Toast.makeText(context, "${quantity} ${productToAdd.priceUnit}${if (quantity != 1) "s" else ""} de ${productToAdd.name} añadido al carrito", Toast.LENGTH_SHORT).show()
                         }

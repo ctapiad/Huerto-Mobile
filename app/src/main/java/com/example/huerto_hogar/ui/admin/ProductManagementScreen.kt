@@ -22,17 +22,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 import com.example.huerto_hogar.R
-import com.example.huerto_hogar.data.*
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.model.Product
 import java.util.Date
 
 /**
  * Pantalla de gestión de productos para administradores
  */
 @Composable
-fun ProductManagementScreen() {
-    val products by LocalDataRepository.products.collectAsState()
+fun ProductManagementScreen(
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+) {
+    val products by databaseRepository.getAllProducts().collectAsState(initial = emptyList())
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var showCreateDialog by remember { mutableStateOf(false) }
     var selectedProduct by remember { mutableStateOf<Product?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
@@ -95,9 +101,11 @@ fun ProductManagementScreen() {
                         showEditDialog = true
                     },
                     onToggleActive = { productToToggle ->
-                        LocalDataRepository.updateProduct(
-                            productToToggle.copy(isActive = !productToToggle.isActive)
-                        )
+                        coroutineScope.launch {
+                            databaseRepository.updateProduct(
+                                productToToggle.copy(isActive = !productToToggle.isActive)
+                            )
+                        }
                         Toast.makeText(
                             context, 
                             if (productToToggle.isActive) "Producto desactivado" else "Producto activado",
@@ -105,7 +113,9 @@ fun ProductManagementScreen() {
                         ).show()
                     },
                     onDelete = { productToDelete ->
-                        LocalDataRepository.deleteProduct(productToDelete.id)
+                        coroutineScope.launch {
+                            databaseRepository.deleteProduct(productToDelete.id)
+                        }
                         Toast.makeText(context, "Producto eliminado", Toast.LENGTH_SHORT).show()
                     }
                 )
@@ -119,7 +129,9 @@ fun ProductManagementScreen() {
             product = null,
             onDismiss = { showCreateDialog = false },
             onSave = { newProduct ->
-                LocalDataRepository.createProduct(newProduct)
+                coroutineScope.launch {
+                    databaseRepository.insertProduct(newProduct)
+                }
                 showCreateDialog = false
                 Toast.makeText(context, "Producto creado exitosamente", Toast.LENGTH_SHORT).show()
             }
@@ -134,7 +146,9 @@ fun ProductManagementScreen() {
                 selectedProduct = null
             },
             onSave = { updatedProduct ->
-                LocalDataRepository.updateProduct(updatedProduct)
+                coroutineScope.launch {
+                    databaseRepository.updateProduct(updatedProduct)
+                }
                 showEditDialog = false
                 selectedProduct = null
                 Toast.makeText(context, "Producto actualizado exitosamente", Toast.LENGTH_SHORT).show()

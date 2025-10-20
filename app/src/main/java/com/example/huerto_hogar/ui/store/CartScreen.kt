@@ -22,8 +22,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.R
-import com.example.huerto_hogar.data.*
+import com.example.huerto_hogar.data.LocalDataRepository
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.dto.CartItem
+import com.example.huerto_hogar.data.enums.OrderStatus
+import com.example.huerto_hogar.data.model.DetallePedido
 import com.example.huerto_hogar.util.FormatUtils
+import com.example.huerto_hogar.viewmodel.CartViewModel
 
 /**
  * Pantalla del carrito de compras
@@ -34,9 +39,9 @@ fun CartScreen(
     onLoginRequired: () -> Unit = {},
     onPaymentSuccess: (String, String, Long) -> Unit = { _, _, _ -> }
 ) {
-    val productViewModel: ProductViewModel = viewModel()
-    val cartItems by LocalDataRepository.shoppingCart.collectAsState()
-    val currentUser by LocalDataRepository.currentUser.collectAsState()
+    val cartViewModel: CartViewModel = viewModel()
+    val cartItems by cartViewModel.cartItems.collectAsState()
+    val currentUser by cartViewModel.currentUser.collectAsState()
     val context = LocalContext.current
 
     // Verificar si el usuario está logueado
@@ -102,19 +107,19 @@ fun CartScreen(
                     cartItem = cartItem,
                     onUpdateQuantity = { newQuantity ->
                         if (newQuantity <= 0) {
-                            val result = LocalDataRepository.removeFromCart(cartItem.product.id)
+                            val result = cartViewModel.removeFromCart(cartItem.product.id)
                             if (result.isSuccess) {
                                 Toast.makeText(context, "${cartItem.product.name} eliminado del carrito", Toast.LENGTH_SHORT).show()
                             }
                         } else {
-                            val result = LocalDataRepository.updateCartItemQuantity(cartItem.product.id, newQuantity)
+                            val result = cartViewModel.updateCartItemQuantity(cartItem.product.id, newQuantity)
                             if (result.isFailure) {
                                 Toast.makeText(context, result.exceptionOrNull()?.message ?: "Error al actualizar", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
                     onRemove = {
-                        val result = LocalDataRepository.removeFromCart(cartItem.product.id)
+                        val result = cartViewModel.removeFromCart(cartItem.product.id)
                         if (result.isSuccess) {
                             Toast.makeText(context, "${cartItem.product.name} eliminado del carrito", Toast.LENGTH_SHORT).show()
                         }
@@ -136,25 +141,29 @@ fun CartScreen(
                                 user.address!!
                             }
                             
-                            // Crear pedido real en el sistema
-                            val orderId = LocalDataRepository.createOrderFromCart(deliveryAddress)
-                            if (orderId != null) {
-                                // Calcular total incluyendo envío (misma lógica que OrderSummaryCard)
-                                val subtotal = cartItems.values.sumOf { cartItem ->
-                                    cartItem.product.price * cartItem.quantity
-                                }
-                                val deliveryFee = if (subtotal >= 50000) 0.0 else 3000.0 // Envío gratis sobre $50.000
-                                val total = subtotal + deliveryFee
-                                val totalFormatted = FormatUtils.formatPrice(total)
-                                
-                                // Mostrar pantalla de confirmación de pago
-                                onPaymentSuccess("ORD-$orderId", totalFormatted, orderId)
-                            } else {
-                                Toast.makeText(
-                                    context,
-                                    "Error al procesar el pedido. Inténtalo de nuevo.",
-                                    Toast.LENGTH_LONG
-                                ).show()
+                            // Crear pedido real en SQLite
+                            cartViewModel.createOrderFromCart(deliveryAddress) { result ->
+                                result.fold(
+                                    onSuccess = { orderId ->
+                                        // Calcular total para mostrar
+                                        val subtotal = cartItems.values.sumOf { cartItem ->
+                                            cartItem.product.price * cartItem.quantity
+                                        }
+                                        val deliveryFee = if (subtotal >= 50000) 0.0 else 3000.0
+                                        val total = subtotal + deliveryFee
+                                        val totalFormatted = FormatUtils.formatPrice(total)
+                                        
+                                        // Mostrar pantalla de confirmación de pago
+                                        onPaymentSuccess("ORD-$orderId", totalFormatted, orderId)
+                                    },
+                                    onFailure = { exception ->
+                                        Toast.makeText(
+                                            context,
+                                            "Error al procesar el pedido: ${exception.message}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                )
                             }
                         } ?: run {
                             // Usuario no logueado - redirigir al login
