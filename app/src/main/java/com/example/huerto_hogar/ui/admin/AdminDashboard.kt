@@ -11,18 +11,31 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.LocalDataRepository
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.platform.LocalContext
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.enums.UserRole
+import com.example.huerto_hogar.viewmodel.AuthViewModel
 
 /**
  * Pantalla principal del administrador con navegación por pestañas
  */
 @Composable
-fun AdminDashboard() {
-    val currentUser by LocalDataRepository.currentUser.collectAsState()
+fun AdminDashboard(
+    authViewModel: AuthViewModel = viewModel(),
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+) {
+    val currentUser by authViewModel.currentUser.collectAsState()
     var selectedTabIndex by remember { mutableStateOf(0) }
 
+    // Debug: Verificar el usuario actual
+    LaunchedEffect(currentUser) {
+        println("DEBUG AdminDashboard: currentUser = $currentUser")
+        println("DEBUG AdminDashboard: role = ${currentUser?.role}")
+    }
+
     // Verificar que el usuario es administrador
-    if (currentUser?.role != com.example.huerto_hogar.data.UserRole.ADMIN) {
+    if (currentUser?.role != UserRole.ADMIN) {
         UnauthorizedAccess()
         return
     }
@@ -87,9 +100,9 @@ fun AdminDashboard() {
 
         // Contenido de las pestañas
         when (selectedTabIndex) {
-            0 -> UserManagementScreen()
-            1 -> ProductManagementScreen()
-            2 -> ReportsScreen()
+            0 -> UserManagementScreen(databaseRepository)
+            1 -> ProductManagementScreen(databaseRepository)
+            2 -> ReportsScreen(databaseRepository)
         }
     }
 }

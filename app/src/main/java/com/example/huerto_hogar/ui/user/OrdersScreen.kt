@@ -10,121 +10,42 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.huerto_hogar.data.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.flow.flowOf
+import com.example.huerto_hogar.database.repository.DatabaseRepository
+import com.example.huerto_hogar.data.model.Product
+import com.example.huerto_hogar.data.model.Pedido
+import com.example.huerto_hogar.data.model.DetallePedido
+import com.example.huerto_hogar.data.enums.OrderStatus
+import com.example.huerto_hogar.viewmodel.AuthViewModel
 import com.example.huerto_hogar.util.FormatUtils
 import java.text.SimpleDateFormat
 import java.util.*
-
-/**
- * Estados de pedido
- */
-enum class OrderStatus {
-    PREPARANDO,
-    EN_CAMINO,
-    ENTREGADO,
-    CANCELADO
-}
-
-/**
- * Clase para representar un pedido
- */
-data class Order(
-    val id: String,
-    val userId: String,
-    val items: List<CartItem>,
-    val total: Double,
-    val status: OrderStatus,
-    val orderDate: Date,
-    val deliveryAddress: String,
-    val estimatedDelivery: String
-)
 
 /**
  * Pantalla de pedidos con historial
  */
 @Composable
 fun OrdersScreen(
-    onLoginRequired: () -> Unit = {}
+    onLoginRequired: () -> Unit = {},
+    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current),
+    authViewModel: AuthViewModel = viewModel()
 ) {
-    val currentUser by LocalDataRepository.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
 
     if (currentUser == null) {
         NoUserOrdersCard(onLoginRequired = onLoginRequired)
         return
     }
 
-    // Crear productos de ejemplo para los pedidos
-    val exampleProducts = remember {
-        listOf(
-            Product(id = "P1", name = "Tomate Cherry", imageName = "tomate_cherry", 
-                   description = "Tomates frescos", price = 2200.0, stock = 10, origin = "Local",
-                   isOrganic = true, isActive = true, entryDate = Date(), categoryId = 2, priceUnit = "kg"),
-            Product(id = "P2", name = "Lechuga Hidropónica", imageName = "lechuga", 
-                   description = "Lechuga fresca", price = 1800.0, stock = 15, origin = "Local",
-                   isOrganic = true, isActive = true, entryDate = Date(), categoryId = 2, priceUnit = "kg"),
-            Product(id = "P3", name = "Orégano Fresco", imageName = "oregano", 
-                   description = "Orégano aromático", price = 1500.0, stock = 20, origin = "Local",
-                   isOrganic = true, isActive = true, entryDate = Date(), categoryId = 2, priceUnit = "kg"),
-            Product(id = "P4", name = "Albahaca Orgánica", imageName = "albahaca", 
-                   description = "Albahaca orgánica", price = 1700.0, stock = 12, origin = "Local",
-                   isOrganic = true, isActive = true, entryDate = Date(), categoryId = 2, priceUnit = "kg"),
-            Product(id = "P5", name = "Pepino Orgánico", imageName = "pepino", 
-                   description = "Pepino fresco", price = 1900.0, stock = 8, origin = "Local",
-                   isOrganic = true, isActive = true, entryDate = Date(), categoryId = 2, priceUnit = "kg")
-        )
-    }
-
-    // Pedidos de ejemplo para demostración
-    val orders = remember {
-        listOf(
-            Order(
-                id = "ORD001",
-                userId = currentUser!!.id.toString(),
-                items = listOf(
-                    CartItem(exampleProducts[0], 2),
-                    CartItem(exampleProducts[1], 1)
-                ),
-                total = 6200.0,
-                status = OrderStatus.EN_CAMINO,
-                orderDate = Calendar.getInstance().apply { 
-                    add(Calendar.DAY_OF_YEAR, -1) 
-                }.time,
-                deliveryAddress = "Av. Las Condes 123, Las Condes",
-                estimatedDelivery = "Hoy 15:00 - 18:00"
-            ),
-            Order(
-                id = "ORD002",
-                userId = currentUser!!.id.toString(),
-                items = listOf(
-                    CartItem(exampleProducts[2], 1),
-                    CartItem(exampleProducts[3], 2)
-                ),
-                total = 4900.0,
-                status = OrderStatus.ENTREGADO,
-                orderDate = Calendar.getInstance().apply { 
-                    add(Calendar.DAY_OF_YEAR, -3) 
-                }.time,
-                deliveryAddress = "Av. Las Condes 123, Las Condes",
-                estimatedDelivery = "Entregado el 15/01/2024"
-            ),
-            Order(
-                id = "ORD003",
-                userId = currentUser!!.id.toString(),
-                items = listOf(
-                    CartItem(exampleProducts[4], 3)
-                ),
-                total = 5700.0,
-                status = OrderStatus.PREPARANDO,
-                orderDate = Date(),
-                deliveryAddress = "Av. Las Condes 123, Las Condes",
-                estimatedDelivery = "Mañana 10:00 - 13:00"
-            )
-        )
-    }
-
+    // Obtener pedidos del usuario desde la base de datos
+    val userOrders by remember(currentUser!!.id) {
+        databaseRepository.getOrdersByUser(currentUser!!.id)
+    }.collectAsState(initial = emptyList())
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -171,22 +92,22 @@ fun OrdersScreen(
                     contentColor = Color(0xFF4CAF50)
                 ) {
                     Text(
-                        text = orders.size.toString(),
+                        text = userOrders.size.toString(),
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        if (orders.isEmpty()) {
+        if (userOrders.isEmpty()) {
             EmptyOrdersCard()
         } else {
             // Lista de pedidos
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(orders) { order ->
-                    OrderCard(order = order)
+                items(userOrders) { order ->
+                    OrderCard(order = order, databaseRepository = databaseRepository)
                 }
             }
         }
@@ -283,8 +204,27 @@ fun EmptyOrdersCard() {
 }
 
 @Composable
-fun OrderCard(order: Order) {
+fun OrderCard(
+    order: Pedido,
+    databaseRepository: DatabaseRepository
+) {
     var isExpanded by remember { mutableStateOf(false) }
+    var orderDetails by remember { mutableStateOf<List<DetallePedido>>(emptyList()) }
+    var products by remember { mutableStateOf<Map<String, Product>>(emptyMap()) }
+    
+    // Cargar detalles del pedido cuando se expande
+    LaunchedEffect(order.id, isExpanded) {
+        if (isExpanded && orderDetails.isEmpty()) {
+            orderDetails = databaseRepository.getOrderDetails(order.id)
+            val productMap = mutableMapOf<String, Product>()
+            orderDetails.forEach { detail ->
+                databaseRepository.getProductById(detail.productId)?.let { product ->
+                    productMap[detail.productId] = product
+                }
+            }
+            products = productMap
+        }
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -304,7 +244,7 @@ fun OrderCard(order: Order) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Pedido #${order.id}",
+                        text = "Pedido #ORD-${order.id}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -353,7 +293,7 @@ fun OrderCard(order: Order) {
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = order.estimatedDelivery,
+                            text = "",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.Gray
                         )
@@ -396,8 +336,10 @@ fun OrderCard(order: Order) {
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                order.items.forEach { item ->
-                    OrderItemRow(item = item)
+                orderDetails.forEach { detail ->
+                    products[detail.productId]?.let { product ->
+                        OrderItemRow(detail = detail, product = product)
+                    }
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -427,24 +369,29 @@ fun OrderCard(order: Order) {
 }
 
 @Composable
-fun OrderStatusBadge(status: OrderStatus) {
+fun OrderStatusBadge(status: com.example.huerto_hogar.data.enums.OrderStatus) {
     val (color, text, icon) = when (status) {
-        OrderStatus.PREPARANDO -> Triple(
+        com.example.huerto_hogar.data.enums.OrderStatus.PENDIENTE -> Triple(
+            Color(0xFFFF9800),
+            "Pendiente",
+            Icons.Filled.Schedule
+        )
+        com.example.huerto_hogar.data.enums.OrderStatus.PREPARACION -> Triple(
             Color(0xFFFF9800),
             "Preparando",
             Icons.Filled.Kitchen
         )
-        OrderStatus.EN_CAMINO -> Triple(
+        com.example.huerto_hogar.data.enums.OrderStatus.ENVIADO -> Triple(
             Color(0xFF2196F3),
             "En Camino",
             Icons.Filled.LocalShipping
         )
-        OrderStatus.ENTREGADO -> Triple(
+        com.example.huerto_hogar.data.enums.OrderStatus.ENTREGADO -> Triple(
             Color(0xFF4CAF50),
             "Entregado",
             Icons.Filled.CheckCircle
         )
-        OrderStatus.CANCELADO -> Triple(
+        com.example.huerto_hogar.data.enums.OrderStatus.CANCELADO -> Triple(
             Color(0xFFF44336),
             "Cancelado",
             Icons.Filled.Cancel
@@ -474,7 +421,7 @@ fun OrderStatusBadge(status: OrderStatus) {
 }
 
 @Composable
-fun OrderItemRow(item: CartItem) {
+fun OrderItemRow(detail: DetallePedido, product: Product) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -484,19 +431,19 @@ fun OrderItemRow(item: CartItem) {
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = item.product.name,
+                text = product.name,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = "Cantidad: ${item.quantity}",
+                text = "Cantidad: ${detail.cantidad}",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.Gray
             )
         }
         
         Text(
-            text = FormatUtils.formatPrice(item.product.price * item.quantity),
+            text = FormatUtils.formatPrice(detail.subtotal),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF4CAF50)
