@@ -2,10 +2,15 @@ package com.example.huerto_hogar
 
 import android.app.Application
 import com.example.huerto_hogar.data.LocalDataRepository
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class HuertoApplication : Application() {
+    
+    // Scope para operaciones de la aplicación
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
     override fun onCreate() {
         super.onCreate()
@@ -17,7 +22,7 @@ class HuertoApplication : Application() {
         
         // Si se usa la base de datos, poblar con los datos iniciales
         if (useDatabase) {
-            kotlinx.coroutines.GlobalScope.launch {
+            applicationScope.launch {
                 LocalDataRepository.populateDatabaseFromLocalData()
             }
         }

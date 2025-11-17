@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,24 +36,37 @@ fun UserProfileScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    if (currentUser == null) {
-        NoUserProfileCard(onLoginRequired = onLoginRequired)
-        return
-    }
+    currentUser?.let { user ->
+        UserProfileContent(
+            user = user,
+            onLoginRequired = onLoginRequired,
+            authViewModel = authViewModel
+        )
+    } ?: NoUserProfileCard(onLoginRequired = onLoginRequired)
+}
 
+@Composable
+private fun UserProfileContent(
+    user: com.example.huerto_hogar.data.model.User,
+    onLoginRequired: () -> Unit,
+    authViewModel: AuthViewModel
+) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
     var isEditing by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf(currentUser!!.name) }
-    var password by remember { mutableStateOf(currentUser!!.password) }
-    var address by remember { mutableStateOf(currentUser!!.address ?: "") }
-    var phone by remember { mutableStateOf(currentUser!!.phone?.toString() ?: "") }
+    var name by remember { mutableStateOf(user.name) }
+    var password by remember { mutableStateOf(user.password) }
+    var address by remember { mutableStateOf(user.address ?: "") }
+    var phone by remember { mutableStateOf(user.phone?.toString() ?: "") }
 
     // Reset fields when user changes or edit mode changes
-    LaunchedEffect(currentUser, isEditing) {
+    LaunchedEffect(user, isEditing) {
         if (!isEditing) {
-            name = currentUser?.name ?: ""
-            password = currentUser?.password ?: ""
-            address = currentUser?.address ?: ""
-            phone = currentUser?.phone?.toString() ?: ""
+            name = user.name
+            password = user.password
+            address = user.address ?: ""
+            phone = user.phone?.toString() ?: ""
         }
     }
 
@@ -113,7 +127,7 @@ fun UserProfileScreen(
                 // Email (no editable)
                 InfoField(
                     label = "Email",
-                    value = currentUser!!.email,
+                    value = user.email,
                     isEditable = false,
                     icon = Icons.Filled.Email
                 )
@@ -123,10 +137,10 @@ fun UserProfileScreen(
                 // Rol (no editable)
                 InfoField(
                     label = "Rol",
-                    value = currentUser!!.role.name,
+                    value = user.role.name,
                     isEditable = false,
                     icon = Icons.Filled.Badge,
-                    badgeColor = when (currentUser!!.role) {
+                    badgeColor = when (user.role) {
                         UserRole.ADMIN -> Color(0xFFE91E63)
                         UserRole.VENDEDOR -> Color(0xFF2196F3)
                         UserRole.CLIENTE -> Color(0xFF4CAF50)
@@ -202,7 +216,7 @@ fun UserProfileScreen(
                         // Botón guardar
                         Button(
                             onClick = {
-                                val updatedUser = currentUser!!.copy(
+                                val updatedUser = user.copy(
                                     name = name,
                                     password = password,
                                     address = address.ifEmpty { null },
@@ -259,7 +273,7 @@ fun UserProfileScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Usuario desde: ${java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(currentUser!!.registrationDate)}",
+                    text = "Usuario desde: ${java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(user.registrationDate)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
@@ -311,7 +325,7 @@ fun NoUserProfileCard(onLoginRequired: () -> Unit) {
                     containerColor = Color(0xFF2196F3)
                 )
             ) {
-                Icon(Icons.Filled.Login, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Iniciar Sesión")
             }

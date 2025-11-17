@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -193,7 +194,7 @@ fun NoUserLoggedCard(onLoginRequired: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                Icons.Filled.Login,
+                Icons.AutoMirrored.Filled.Login,
                 contentDescription = "Login requerido",
                 modifier = Modifier.size(64.dp),
                 tint = Color(0xFF2196F3)
@@ -218,7 +219,7 @@ fun NoUserLoggedCard(onLoginRequired: () -> Unit) {
                     containerColor = Color(0xFF2196F3)
                 )
             ) {
-                Icon(Icons.Filled.Login, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Iniciar Sesión")
             }
@@ -486,7 +487,7 @@ fun OrderSummaryCard(
                 )
             ) {
                 Icon(
-                    imageVector = if (isUserLoggedIn) Icons.Filled.Payment else Icons.Filled.Login,
+                    imageVector = if (isUserLoggedIn) Icons.Filled.Payment else Icons.AutoMirrored.Filled.Login,
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))

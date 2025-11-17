@@ -1,6 +1,8 @@
 package com.example.huerto_hogar
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -35,7 +37,9 @@ import com.example.huerto_hogar.ui.user.UserProfileScreen
 import com.example.huerto_hogar.ui.user.OrdersScreen
 import com.example.huerto_hogar.ui.order.PaymentSuccessScreen
 import com.example.huerto_hogar.ui.order.MyOrdersScreen
+import com.example.huerto_hogar.ui.test.ApiTestScreen
 import com.example.huerto_hogar.ui.theme.HuertoHogarTheme
+import com.example.huerto_hogar.network.NetworkTestHelper
 import kotlinx.coroutines.launch
 
 object Routes {
@@ -51,11 +55,16 @@ object Routes {
     const val PAYMENT_SUCCESS = "payment_success"
     const val MY_ORDERS = "my_orders"
     const val ADMIN_ORDER_MANAGEMENT = "admin_order_management"
+    const val API_TEST = "api_test" // 🧪 Pantalla de pruebas de API
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // 🧪 TEST: Probar conexión con microservicios
+        testMicroservicesConnection()
+        
         setContent {
             HuertoHogarTheme {
                 Box(modifier = Modifier.fillMaxSize()) {
@@ -67,6 +76,25 @@ class MainActivity : ComponentActivity() {
                     )
                     AppNavigation()
                 }
+            }
+        }
+    }
+    
+    private fun testMicroservicesConnection() {
+        NetworkTestHelper.testConnection { success, message ->
+            Log.d("NetworkTest", "=".repeat(50))
+            Log.d("NetworkTest", "TEST DE CONEXIÓN CON MICROSERVICIOS")
+            Log.d("NetworkTest", "=".repeat(50))
+            Log.d("NetworkTest", message)
+            Log.d("NetworkTest", "=".repeat(50))
+            
+            // Mostrar resultado en Toast
+            runOnUiThread {
+                Toast.makeText(
+                    this,
+                    if (success) "✅ APIs conectadas correctamente" else "❌ Error de conexión",
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -141,6 +169,9 @@ fun AppNavigation() {
                     HomeScreen(
                         onNavigateToCart = {
                             navController.navigate(Routes.CART)
+                        },
+                        onNavigateToApiTest = {
+                            navController.navigate(Routes.API_TEST)
                         },
                         cartViewModel = sharedCartViewModel
                     )
@@ -240,6 +271,13 @@ fun AppNavigation() {
                 composable(Routes.ADMIN_ORDER_MANAGEMENT) {
                     OrderManagementScreen()
                 }
+                
+                // 🧪 Pantalla de prueba de APIs
+                composable(Routes.API_TEST) {
+                    ApiTestScreen(
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }
@@ -250,7 +288,7 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
     ModalDrawerSheet {
         Column(modifier = Modifier.padding(16.dp)) {
             Text("Huerto Hogar", style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(bottom = 16.dp))
-            Divider()
+            HorizontalDivider()
 
             NavigationDrawerItem(label = { Text("Inicio") }, selected = false, onClick = { onNavigate(Routes.HOME) })
             NavigationDrawerItem(label = { Text("Productos") }, selected = false, onClick = { onNavigate(Routes.PRODUCTS) })
@@ -258,7 +296,7 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
             NavigationDrawerItem(label = { Text("Blog") }, selected = false, onClick = { onNavigate(Routes.BLOG) })
             NavigationDrawerItem(label = { Text("Nosotros") }, selected = false, onClick = { onNavigate(Routes.ABOUT_US) })
 
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
             if (currentUser == null) {
                 NavigationDrawerItem(label = { Text("Iniciar Sesión") }, selected = false, onClick = { onNavigate(Routes.LOGIN) })
@@ -268,12 +306,12 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
                 NavigationDrawerItem(label = { Text("Mis Pedidos") }, selected = false, onClick = { onNavigate(Routes.MY_ORDERS) })
                 
                 if (currentUser.role == UserRole.ADMIN) {
-                    Divider(modifier = Modifier.padding(vertical = 4.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     NavigationDrawerItem(label = { Text("Dashboard Admin") }, selected = false, onClick = { onNavigate(Routes.ADMIN_DASHBOARD) })
                     NavigationDrawerItem(label = { Text("Gestión de Pedidos") }, selected = false, onClick = { onNavigate(Routes.ADMIN_ORDER_MANAGEMENT) })
                 }
                 
-                Divider(modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 NavigationDrawerItem(label = { Text("Cerrar Sesión") }, selected = false, onClick = onLogout)
             }
         }

@@ -3,6 +3,7 @@ package com.example.huerto_hogar.ui.store
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Remove
@@ -43,6 +45,7 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 @Composable
 fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
+    onNavigateToApiTest: () -> Unit = {}, // 🧪 Nueva navegación
     productViewModel: ProductViewModel = viewModel(),
     cartViewModel: CartViewModel
 ) {
@@ -63,6 +66,11 @@ fun HomeScreen(
             // Sección de bienvenida e información de la app
             item {
                 WelcomeSection()
+            }
+            
+            // 🧪 Botón de prueba de APIs (temporal para desarrollo)
+            item {
+                ApiTestButton(onClick = onNavigateToApiTest)
             }
             
             // Carrusel de productos destacados
@@ -513,5 +521,50 @@ fun SocialMediaItem(emoji: String, name: String) {
             color = Color.White,
             fontSize = 10.sp
         )
+    }
+}
+
+/**
+ * 🧪 Botón para acceder a la pantalla de pruebas de API
+ * (Temporal para desarrollo)
+ */
+@Composable
+fun ApiTestButton(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2196F3).copy(alpha = 0.9f)
+        ),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "🧪 Prueba de APIs",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "Verifica la conexión con microservicios",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "Ir a pruebas",
+                tint = Color.White
+            )
+        }
     }
 }

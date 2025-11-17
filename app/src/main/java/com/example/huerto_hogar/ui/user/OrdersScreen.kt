@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -157,7 +158,7 @@ fun NoUserOrdersCard(onLoginRequired: () -> Unit) {
                     containerColor = Color(0xFF4CAF50)
                 )
             ) {
-                Icon(Icons.Filled.Login, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Iniciar Sesión")
             }
@@ -325,7 +326,7 @@ fun OrderCard(
 
             // Detalles expandibles
             if (isExpanded) {
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(12.dp))
                 
                 Text(
@@ -343,7 +344,7 @@ fun OrderCard(
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(8.dp))
                 
                 // Total del pedido

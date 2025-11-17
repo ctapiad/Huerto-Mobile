@@ -3,8 +3,6 @@ package com.example.huerto_hogar.ui.store
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.huerto_hogar.data.LocalDataRepository
-import com.example.huerto_hogar.data.dto.CartItem
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.data.catalog.Categoria
 import com.example.huerto_hogar.database.repository.DatabaseRepository
