@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -45,7 +46,6 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 @Composable
 fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
-    onNavigateToApiTest: () -> Unit = {}, // 🧪 Nueva navegación
     productViewModel: ProductViewModel = viewModel(),
     cartViewModel: CartViewModel
 ) {
@@ -66,11 +66,6 @@ fun HomeScreen(
             // Sección de bienvenida e información de la app
             item {
                 WelcomeSection()
-            }
-            
-            // 🧪 Botón de prueba de APIs (temporal para desarrollo)
-            item {
-                ApiTestButton(onClick = onNavigateToApiTest)
             }
             
             // Carrusel de productos destacados
@@ -276,20 +271,16 @@ fun FeaturedProductCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Imagen del producto
-            val imageResId = context.resources.getIdentifier(
-                product.imageName, 
-                "drawable", 
-                context.packageName
-            )
-            
-            Image(
-                painter = painterResource(id = if (imageResId != 0) imageResId else R.drawable.huertohogarfondo),
+            // Imagen del producto (desde URL o recurso local)
+            AsyncImage(
+                model = product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                 contentDescription = product.name,
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.huertohogarfondo),
+                placeholder = painterResource(R.drawable.huertohogarfondo)
             )
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -524,47 +515,3 @@ fun SocialMediaItem(emoji: String, name: String) {
     }
 }
 
-/**
- * 🧪 Botón para acceder a la pantalla de pruebas de API
- * (Temporal para desarrollo)
- */
-@Composable
-fun ApiTestButton(onClick: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2196F3).copy(alpha = 0.9f)
-        ),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "🧪 Prueba de APIs",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                Text(
-                    text = "Verifica la conexión con microservicios",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Ir a pruebas",
-                tint = Color.White
-            )
-        }
-    }
-}

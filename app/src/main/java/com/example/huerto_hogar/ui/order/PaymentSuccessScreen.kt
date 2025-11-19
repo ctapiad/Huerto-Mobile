@@ -32,35 +32,12 @@ fun PaymentSuccessScreen(
     orderId: Long
 ) {
     var countdown by remember { mutableStateOf(5) }
-    var orderDetails by remember { mutableStateOf<List<DetallePedido>>(emptyList()) }
-    var actualTotal by remember { mutableStateOf(0.0) }
-    var deliveryFee by remember { mutableStateOf(0.0) }
-    var productsMap by remember { mutableStateOf<Map<String, Product>>(emptyMap()) }
-
-    // Obtener detalles del pedido
-    LaunchedEffect(orderId) {
-        orderDetails = LocalDataRepository.getOrderDetails(orderId)
-        val order = LocalDataRepository.getOrderById(orderId)
-        actualTotal = order?.total ?: 0.0
-        
-        // Obtener fee de delivery
-        deliveryFee = LocalDataRepository.getOrderDeliveryFee(orderId)
-        
-        // Obtener todos los productos de los detalles
-        val productIds = orderDetails.map { it.productId }.distinct()
-        val products = mutableMapOf<String, Product>()
-        productIds.forEach { productId ->
-            LocalDataRepository.getProductById(productId)?.let { product ->
-                products[productId] = product
-            }
-        }
-        productsMap = products
-    }
     
-    // Formatear el total real en lugar de usar el parámetro
-    val actualTotalFormatted = remember(actualTotal) {
-        FormatUtils.formatPrice(actualTotal)
-    }
+    // Los pedidos son ficticios - solo mostramos confirmación sin datos reales guardados
+    val orderDetails = emptyList<DetallePedido>()
+    val actualTotalFormatted = totalAmount
+    val deliveryFee = 0.0  // Ficticio
+    val productsMap = emptyMap<String, Product>()  // Ficticio
     
     // Efecto para la cuenta regresiva y navegación automática
     LaunchedEffect(Unit) {

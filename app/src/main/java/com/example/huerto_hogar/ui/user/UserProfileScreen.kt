@@ -223,13 +223,10 @@ private fun UserProfileContent(
                                     phone = phone.toIntOrNull()
                                 )
                                 coroutineScope.launch {
-                                    val success = LocalDataRepository.updateUser(updatedUser)
-                                    if (success) {
-                                        isEditing = false
-                                        Toast.makeText(context, "Perfil actualizado exitosamente", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Error al actualizar perfil", Toast.LENGTH_SHORT).show()
-                                    }
+                                    // Actualizar usuario en memoria (sin persistencia por ahora)
+                                    LocalDataRepository.setCurrentUser(updatedUser)
+                                    isEditing = false
+                                    Toast.makeText(context, "Perfil actualizado en memoria (sin persistencia)", Toast.LENGTH_SHORT).show()
                                 }
                             },
                             modifier = Modifier.weight(1f),

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.foundation.Image
+import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.R
 import com.example.huerto_hogar.data.LocalDataRepository
@@ -262,29 +263,18 @@ fun SimpleProductCard(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Imagen
+                // Imagen (desde URL o recurso local)
                 Card(
                     modifier = Modifier.size(80.dp),
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    val imageResId = when (product.imageName) {
-                        "manzana_funji" -> R.drawable.manzana_funji
-                        "naranjas_valencia" -> R.drawable.naranjas_valencia
-                        "platanos_cavendish" -> R.drawable.platanos_cavendish
-                        "zanahorias_organicas" -> R.drawable.zanahorias_organicas
-                        "espinacas_frescas" -> R.drawable.espinacas_frescas
-                        "pimientos_tricolores" -> R.drawable.pimientos_tricolores
-                        "miel_organica" -> R.drawable.miel_organica
-                        "quinua_organica" -> R.drawable.manzana_funji // Usar imagen existente
-                        "leche" -> R.drawable.leche
-                        else -> R.drawable.manzana_funji // Usar imagen por defecto existente
-                    }
-                    
-                    Image(
-                        painter = painterResource(imageResId),
+                    AsyncImage(
+                        model = product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                         contentDescription = product.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.huertohogarfondo),
+                        placeholder = painterResource(R.drawable.huertohogarfondo)
                     )
                 }
                 

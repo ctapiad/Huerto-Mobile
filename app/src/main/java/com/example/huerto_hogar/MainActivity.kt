@@ -32,12 +32,8 @@ import com.example.huerto_hogar.ui.store.HomeScreen
 import com.example.huerto_hogar.ui.store.ProductListScreen
 import com.example.huerto_hogar.ui.store.CartScreen
 import com.example.huerto_hogar.ui.admin.AdminDashboard
-import com.example.huerto_hogar.ui.admin.OrderManagementScreen
 import com.example.huerto_hogar.ui.user.UserProfileScreen
-import com.example.huerto_hogar.ui.user.OrdersScreen
 import com.example.huerto_hogar.ui.order.PaymentSuccessScreen
-import com.example.huerto_hogar.ui.order.MyOrdersScreen
-import com.example.huerto_hogar.ui.test.ApiTestScreen
 import com.example.huerto_hogar.ui.theme.HuertoHogarTheme
 import com.example.huerto_hogar.network.NetworkTestHelper
 import kotlinx.coroutines.launch
@@ -49,34 +45,35 @@ object Routes {
     const val ADMIN_DASHBOARD = "admin_dashboard"
     const val CART = "cart"
     const val USER_PROFILE = "user_profile"
-    const val ORDERS = "orders"
-    const val BLOG = "blog"
-    const val ABOUT_US = "about_us"
     const val PAYMENT_SUCCESS = "payment_success"
-    const val MY_ORDERS = "my_orders"
-    const val ADMIN_ORDER_MANAGEMENT = "admin_order_management"
-    const val API_TEST = "api_test" // 🧪 Pantalla de pruebas de API
 }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("MainActivity", "onCreate started")
         
-        // 🧪 TEST: Probar conexión con microservicios
-        testMicroservicesConnection()
-        
-        setContent {
-            HuertoHogarTheme {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Image(
-                        painter = painterResource(id = R.drawable.huertohogarfondo),
-                        contentDescription = "Fondo de la aplicación",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    AppNavigation()
+        try {
+            // 🧪 TEST: Probar conexión con microservicios (comentado para evitar crash)
+            // testMicroservicesConnection()
+            
+            Log.d("MainActivity", "Setting content")
+            setContent {
+                HuertoHogarTheme {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Image(
+                            painter = painterResource(id = R.drawable.huertohogarfondo),
+                            contentDescription = "Fondo de la aplicación",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                        AppNavigation()
+                    }
                 }
             }
+            Log.d("MainActivity", "Content set successfully")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Fatal error in onCreate", e)
         }
     }
     
@@ -170,9 +167,6 @@ fun AppNavigation() {
                         onNavigateToCart = {
                             navController.navigate(Routes.CART)
                         },
-                        onNavigateToApiTest = {
-                            navController.navigate(Routes.API_TEST)
-                        },
                         cartViewModel = sharedCartViewModel
                     )
                 }
@@ -229,16 +223,6 @@ fun AppNavigation() {
                         onLoginRequired = { navController.navigate(Routes.LOGIN) }
                     )
                 }
-
-                // Pantalla de pedidos
-                composable(Routes.ORDERS) {
-                    OrdersScreen(
-                        onLoginRequired = { navController.navigate(Routes.LOGIN) }
-                    )
-                }
-                
-                composable(Routes.BLOG) { /* Tu pantalla de Blog */ }
-                composable(Routes.ABOUT_US) { /* Tu pantalla de Nosotros */ }
                 
                 // Dashboard de administrador - solo accesible para administradores
                 composable(Routes.ADMIN_DASHBOARD) {
@@ -252,7 +236,7 @@ fun AppNavigation() {
                     val orderId = backStackEntry.arguments?.getString("orderId")?.toLongOrNull() ?: 0L
                     PaymentSuccessScreen(
                         onNavigateToOrders = {
-                            navController.navigate(Routes.MY_ORDERS) {
+                            navController.navigate(Routes.HOME) {
                                 popUpTo(Routes.HOME) { inclusive = false }
                             }
                         },
@@ -262,22 +246,7 @@ fun AppNavigation() {
                     )
                 }
                 
-                // Pantalla "Mis Pedidos" para usuarios
-                composable(Routes.MY_ORDERS) {
-                    MyOrdersScreen()
-                }
-                
-                // Pantalla de gestión de pedidos para administradores
-                composable(Routes.ADMIN_ORDER_MANAGEMENT) {
-                    OrderManagementScreen()
-                }
-                
-                // 🧪 Pantalla de prueba de APIs
-                composable(Routes.API_TEST) {
-                    ApiTestScreen(
-                        onBack = { navController.popBackStack() }
-                    )
-                }
+
             }
         }
     }
@@ -293,8 +262,6 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
             NavigationDrawerItem(label = { Text("Inicio") }, selected = false, onClick = { onNavigate(Routes.HOME) })
             NavigationDrawerItem(label = { Text("Productos") }, selected = false, onClick = { onNavigate(Routes.PRODUCTS) })
             NavigationDrawerItem(label = { Text("Mi Carrito") }, selected = false, onClick = { onNavigate(Routes.CART) })
-            NavigationDrawerItem(label = { Text("Blog") }, selected = false, onClick = { onNavigate(Routes.BLOG) })
-            NavigationDrawerItem(label = { Text("Nosotros") }, selected = false, onClick = { onNavigate(Routes.ABOUT_US) })
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -303,12 +270,10 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
             } else {
                 // Opciones para usuarios logueados
                 NavigationDrawerItem(label = { Text("Mi Perfil") }, selected = false, onClick = { onNavigate(Routes.USER_PROFILE) })
-                NavigationDrawerItem(label = { Text("Mis Pedidos") }, selected = false, onClick = { onNavigate(Routes.MY_ORDERS) })
                 
                 if (currentUser.role == UserRole.ADMIN) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     NavigationDrawerItem(label = { Text("Dashboard Admin") }, selected = false, onClick = { onNavigate(Routes.ADMIN_DASHBOARD) })
-                    NavigationDrawerItem(label = { Text("Gestión de Pedidos") }, selected = false, onClick = { onNavigate(Routes.ADMIN_ORDER_MANAGEMENT) })
                 }
                 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))

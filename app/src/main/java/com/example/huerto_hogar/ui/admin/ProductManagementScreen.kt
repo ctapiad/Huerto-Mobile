@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,7 +29,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import com.example.huerto_hogar.R
-import com.example.huerto_hogar.database.repository.DatabaseRepository
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.network.repository.ProductRepository
 import com.example.huerto_hogar.network.ApiResult
@@ -40,9 +40,7 @@ import java.util.Date
  * Ahora consume datos de la API REST en lugar de la base de datos local
  */
 @Composable
-fun ProductManagementScreen(
-    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
-) {
+fun ProductManagementScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val productRepository = remember { ProductRepository() }
@@ -238,6 +236,7 @@ fun ProductManagementScreen(
     if (showCreateDialog) {
         ApiProductDialog(
             producto = null,
+            productosExistentes = apiProducts,
             onDismiss = { showCreateDialog = false },
             onSave = { nuevoProducto ->
                 coroutineScope.launch {
@@ -277,6 +276,7 @@ fun ProductManagementScreen(
     if (showEditDialog && selectedProduct != null) {
         ApiProductDialog(
             producto = selectedProduct,
+            productosExistentes = apiProducts,
             onDismiss = { 
                 showEditDialog = false
                 selectedProduct = null
@@ -333,20 +333,16 @@ fun ProductCard(
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Imagen del producto
-            val imageResId = context.resources.getIdentifier(
-                product.imageName, 
-                "drawable", 
-                context.packageName
-            )
-            
-            Image(
-                painter = painterResource(id = if (imageResId != 0) imageResId else R.drawable.huertohogarfondo),
+            // Imagen del producto (desde URL o recurso local)
+            AsyncImage(
+                model = product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                 contentDescription = product.name,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.huertohogarfondo),
+                placeholder = painterResource(R.drawable.huertohogarfondo)
             )
 
             // Información del producto
@@ -507,31 +503,17 @@ fun ApiProductCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Placeholder para imagen del producto
-                Card(
-                    modifier = Modifier.size(80.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (producto.estaActivo) 
-                            Color(0xFFE8F5E9) 
-                        else 
-                            Color(0xFFEEEEEE)
-                    )
-                ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Filled.ShoppingCart,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp),
-                            tint = if (producto.estaActivo) 
-                                Color(0xFF4CAF50) 
-                            else 
-                                Color(0xFF9E9E9E)
-                        )
-                    }
-                }
+                // Imagen del producto (desde URL o recurso local)
+                AsyncImage(
+                    model = producto.linkImagen?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
+                    contentDescription = producto.nombre,
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop,
+                    error = painterResource(R.drawable.huertohogarfondo),
+                    placeholder = painterResource(R.drawable.huertohogarfondo)
+                )
 
                 // Información del producto
                 Column(
@@ -806,11 +788,38 @@ fun ProductDialog(
                     OutlinedTextField(
                         value = imageName,
                         onValueChange = { imageName = it },
-                        label = { Text("Nombre de imagen (sin extensión)") },
+                        label = { Text("URL de imagen") },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("ej: manzana_funji") },
+                        placeholder = { Text("https://ejemplo.com/imagen.png") },
                         leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) }
                     )
+                }
+
+                // Vista previa de la imagen
+                if (imageName.isNotEmpty()) {
+                    item {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Vista previa:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            AsyncImage(
+                                model = imageName.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
+                                contentDescription = "Vista previa",
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop,
+                                error = painterResource(R.drawable.huertohogarfondo),
+                                placeholder = painterResource(R.drawable.huertohogarfondo)
+                            )
+                        }
+                    }
                 }
 
                 item {
@@ -903,6 +912,7 @@ fun ProductDialog(
 @Composable
 fun ApiProductDialog(
     producto: ProductoDto?,
+    productosExistentes: List<ProductoDto>,
     onDismiss: () -> Unit,
     onSave: (ProductoDto) -> Unit
 ) {
@@ -916,6 +926,32 @@ fun ApiProductDialog(
     var estaActivo by remember { mutableStateOf(producto?.estaActivo ?: true) }
     var idCategoria by remember { mutableStateOf(producto?.idCategoria?.toString() ?: "1") }
     var expanded by remember { mutableStateOf(false) }
+    
+    // Función para generar ID según categoría
+    fun generarIdProducto(categoria: Int): String {
+        val prefijo = when(categoria) {
+            1 -> "FR" // Frutas
+            2 -> "VR" // Verduras
+            3 -> "PO" // Carnes (Pollo)
+            4 -> "PL" // Lácteos (Productos Lácteos)
+            5 -> "GR" // Granos
+            else -> "PR" // Producto genérico
+        }
+        
+        // Obtener productos con el mismo prefijo
+        val productosConPrefijo = productosExistentes.filter { 
+            it.idProducto.startsWith(prefijo) 
+        }
+        
+        // Encontrar el número más alto
+        val maxNumero = productosConPrefijo.mapNotNull { 
+            it.idProducto.substring(2).toIntOrNull() 
+        }.maxOrNull() ?: 0
+        
+        // Generar siguiente número con formato de 3 dígitos
+        val siguienteNumero = (maxNumero + 1).toString().padStart(3, '0')
+        return "$prefijo$siguienteNumero"
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -1098,8 +1134,9 @@ fun ApiProductDialog(
 
                     Button(
                         onClick = {
+                            val categoriaId = idCategoria.toIntOrNull() ?: 1
                             val productoToSave = ProductoDto(
-                                idProducto = producto?.idProducto ?: "PROD${System.currentTimeMillis()}",
+                                idProducto = producto?.idProducto ?: generarIdProducto(categoriaId),
                                 nombre = nombre,
                                 linkImagen = if (linkImagen.isNotEmpty()) linkImagen else producto?.linkImagen,
                                 descripcion = descripcion,
@@ -1109,7 +1146,7 @@ fun ApiProductDialog(
                                 certificacionOrganica = certificacionOrganica,
                                 estaActivo = estaActivo,
                                 fechaIngreso = producto?.fechaIngreso,
-                                idCategoria = idCategoria.toIntOrNull() ?: 1
+                                idCategoria = categoriaId
                             )
                             onSave(productoToSave)
                         },

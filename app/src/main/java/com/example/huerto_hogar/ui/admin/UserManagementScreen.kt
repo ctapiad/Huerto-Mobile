@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
-import com.example.huerto_hogar.database.repository.DatabaseRepository
 import com.example.huerto_hogar.data.model.User
 import com.example.huerto_hogar.data.enums.UserRole
 import com.example.huerto_hogar.network.repository.UserRepository
@@ -38,9 +37,7 @@ import java.util.Date
  * Ahora consume datos de la API REST en lugar de la base de datos local
  */
 @Composable
-fun UserManagementScreen(
-    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
-) {
+fun UserManagementScreen() {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val userRepository = remember { UserRepository() }
@@ -269,17 +266,26 @@ fun UserManagementScreen(
                         idTipoUsuario = usuarioActualizado.idTipoUsuario
                     )) {
                         is ApiResult.Success -> {
-                            // Recargar lista
-                            when (val listResult = userRepository.getAllUsers()) {
-                                is ApiResult.Success -> {
-                                    apiUsers = listResult.data
-                                    Log.d("UserManagement", "✅ Usuario actualizado y lista recargada")
+                            val response = result.data
+                            
+                            // Verificar si hay error de email duplicado
+                            if (response.contains("Ya existe otro usuario con ese email", ignoreCase = true)) {
+                                Toast.makeText(context, "Este email ya está registrado por otro usuario", Toast.LENGTH_LONG).show()
+                            } else if (response.contains("modificado correctamente", ignoreCase = true)) {
+                                // Recargar lista
+                                when (val listResult = userRepository.getAllUsers()) {
+                                    is ApiResult.Success -> {
+                                        apiUsers = listResult.data
+                                        Log.d("UserManagement", "✅ Usuario actualizado y lista recargada")
+                                    }
+                                    else -> {}
                                 }
-                                else -> {}
+                                showEditDialog = false
+                                selectedUser = null
+                                Toast.makeText(context, "Usuario actualizado exitosamente", Toast.LENGTH_SHORT).show()
+                            } else {
+                                Toast.makeText(context, response, Toast.LENGTH_SHORT).show()
                             }
-                            showEditDialog = false
-                            selectedUser = null
-                            Toast.makeText(context, "Usuario actualizado exitosamente", Toast.LENGTH_SHORT).show()
                         }
                         is ApiResult.Error -> {
                             Log.e("UserManagement", "❌ Error al actualizar usuario")
@@ -796,8 +802,7 @@ fun ApiUserDialog(
                     label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
-                    enabled = usuario == null // Email no se puede cambiar al editar
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) }
                 )
 
                 OutlinedTextField(
