@@ -31,7 +31,7 @@ interface UserApiService {
      * Obtener usuario por email
      */
     @GET("api/usuarios/email/{email}")
-    suspend fun getUserByEmail(@Path("email") email: String): Response<Usuario>
+    suspend fun getUserByEmail(@Path(value = "email", encoded = false) email: String): Response<Usuario>
     
     /**
      * Buscar usuarios por nombre
