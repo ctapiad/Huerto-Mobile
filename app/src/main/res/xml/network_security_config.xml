@@ -2,7 +2,11 @@
 <network-security-config>
     <!-- Permitir tráfico HTTP para microservicios en AWS y desarrollo local -->
     <domain-config cleartextTrafficPermitted="true">
-        <!-- Microservicios en AWS (IPs públicas) -->
+        <!-- Microservicios en AWS (IPs públicas - NUEVAS) -->
+        <domain includeSubdomains="true">34.193.190.24</domain>
+        <domain includeSubdomains="true">34.202.46.121</domain>
+        
+        <!-- Microservicios en AWS (IPs antiguas - por si acaso) -->
         <domain includeSubdomains="true">54.211.27.253</domain>
         <domain includeSubdomains="true">54.158.158.91</domain>
         

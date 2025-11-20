@@ -42,13 +42,15 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 // Poner la UI en estado de carga
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
                 
-                Log.d("LoginViewModel", "Intentando login con email: $email")
+                Log.d("LoginViewModel", "=== INICIO LOGIN ===")
+                Log.d("LoginViewModel", "Email: $email")
+                Log.d("LoginViewModel", "URL API: ${com.example.huerto_hogar.network.ApiConfig.USER_SERVICE_BASE_URL}")
                 
                 // Buscar usuario por email en MongoDB
                 when (val result = userRepository.getUserByEmail(email)) {
                     is ApiResult.Success -> {
                         val usuario = result.data
-                        Log.d("LoginViewModel", "Usuario encontrado: ${usuario.nombre}")
+                        Log.d("LoginViewModel", "✅ Usuario encontrado: ${usuario.nombre}, Tipo: ${usuario.idTipoUsuario}")
                         
                         // Verificar contraseña
                         if (usuario.password == password) {
@@ -84,16 +86,26 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                     is ApiResult.Error -> {
-                        Log.e("LoginViewModel", "Error al buscar usuario: ${result.message}")
-                        _uiState.update { it.copy(isLoading = false, errorMessage = "Usuario no encontrado") }
+                        Log.e("LoginViewModel", "❌ Error al buscar usuario")
+                        Log.e("LoginViewModel", "Mensaje: ${result.message}")
+                        Log.e("LoginViewModel", "Código: ${result.code}")
+                        
+                        val errorMsg = when (result.code) {
+                            404 -> "Usuario no encontrado. Verifica el email."
+                            500 -> "Error en el servidor. Intenta más tarde."
+                            else -> "Error: ${result.message}"
+                        }
+                        
+                        _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                     }
                     else -> {
+                        Log.e("LoginViewModel", "Estado desconocido")
                         _uiState.update { it.copy(isLoading = false, errorMessage = "Error desconocido") }
                     }
                 }
             } catch (e: Exception) {
-                Log.e("LoginViewModel", "Error en login: ${e.message}", e)
-                _uiState.update { it.copy(isLoading = false, errorMessage = "Error: ${e.message}") }
+                Log.e("LoginViewModel", "❌ Excepción en login: ${e.message}", e)
+                _uiState.update { it.copy(isLoading = false, errorMessage = "Error de conexión: ${e.message}") }
             }
         }
     }
