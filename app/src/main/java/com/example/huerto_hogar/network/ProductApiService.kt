@@ -119,7 +119,27 @@ interface ProductApiService {
      */
     @DELETE("api/productos/{id}")
     suspend fun deleteProduct(@Path("id") productId: String): Response<Unit>
+    
+    /**
+     * Generar URL prefirmada para subir imagen a S3
+     */
+    @POST("api/productos/upload-url")
+    suspend fun getPresignedUploadUrl(@Body request: UploadUrlRequest): Response<UploadUrlResponse>
 }
+
+// DTO para solicitar URL de subida
+data class UploadUrlRequest(
+    val fileName: String,
+    val contentType: String
+)
+
+// DTO para respuesta de URL de subida
+data class UploadUrlResponse(
+    val uploadUrl: String,    // URL prefirmada para hacer PUT
+    val imageUrl: String,     // URL pública de la imagen
+    val key: String,          // Key del objeto en S3
+    val expiresIn: String     // Tiempo de expiración en segundos
+)
 
 // DTOs según la API real
 data class CrearProductoDto(

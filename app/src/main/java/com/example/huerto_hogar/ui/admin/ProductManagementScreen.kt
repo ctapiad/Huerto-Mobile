@@ -1,7 +1,10 @@
 package com.example.huerto_hogar.ui.admin
 
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +36,9 @@ import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.network.repository.ProductRepository
 import com.example.huerto_hogar.network.ApiResult
 import com.example.huerto_hogar.network.ProductoDto
+import com.example.huerto_hogar.viewmodel.ProductoViewModel
+import com.example.huerto_hogar.service.ImageUploadService
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Date
 
 /**
@@ -916,16 +922,33 @@ fun ApiProductDialog(
     onDismiss: () -> Unit,
     onSave: (ProductoDto) -> Unit
 ) {
-    var nombre by remember { mutableStateOf(producto?.nombre ?: "") }
-    var descripcion by remember { mutableStateOf(producto?.descripcion ?: "") }
-    var precio by remember { mutableStateOf(producto?.precio?.toString() ?: "") }
-    var stock by remember { mutableStateOf(producto?.stock?.toString() ?: "") }
-    var origen by remember { mutableStateOf(producto?.origen ?: "") }
-    var linkImagen by remember { mutableStateOf(producto?.linkImagen ?: "") }
-    var certificacionOrganica by remember { mutableStateOf(producto?.certificacionOrganica ?: false) }
-    var estaActivo by remember { mutableStateOf(producto?.estaActivo ?: true) }
-    var idCategoria by remember { mutableStateOf(producto?.idCategoria?.toString() ?: "1") }
+    val context = LocalContext.current
+    val imageUploadService = remember { ImageUploadService(context) }
+    val viewModel: ProductoViewModel = viewModel { ProductoViewModel(imageUploadService) }
+    val estado by viewModel.estado.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val uploadingImage by viewModel.uploadingImage.collectAsState()
+    val selectedImageUri by viewModel.selectedImageUri.collectAsState()
     var expanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
+    
+    // Launcher para seleccionar imagen
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            viewModel.onImageSelected(it)
+        }
+    }
+    
+    // Cargar datos del producto si estamos editando
+    LaunchedEffect(producto) {
+        if (producto != null) {
+            viewModel.cargarProducto(producto)
+        } else {
+            viewModel.limpiarFormulario()
+        }
+    }
     
     // Función para generar ID según categoría
     fun generarIdProducto(categoria: Int): String {
@@ -975,20 +998,24 @@ fun ApiProductDialog(
                 )
 
                 OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
+                    value = estado.nombre,
+                    onValueChange = { viewModel.onNombreChange(it) },
                     label = { Text("Nombre del producto") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.ShoppingCart, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.ShoppingCart, contentDescription = null) },
+                    isError = estado.errores.nombre != null,
+                    supportingText = estado.errores.nombre?.let { { Text(it) } }
                 )
 
                 OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
+                    value = estado.descripcion,
+                    onValueChange = { viewModel.onDescripcionChange(it) },
                     label = { Text("Descripción") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 3,
-                    leadingIcon = { Icon(Icons.Filled.Description, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Description, contentDescription = null) },
+                    isError = estado.errores.descripcion != null,
+                    supportingText = estado.errores.descripcion?.let { { Text(it) } }
                 )
 
                 Row(
@@ -996,48 +1023,155 @@ fun ApiProductDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        value = precio,
-                        onValueChange = { precio = it },
+                        value = if (estado.precio == 0) "" else estado.precio.toString(),
+                        onValueChange = { viewModel.onPrecioChange(it) },
                         label = { Text("Precio") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        leadingIcon = { Icon(Icons.Filled.AttachMoney, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Filled.AttachMoney, contentDescription = null) },
+                        isError = estado.errores.precio != null,
+                        supportingText = estado.errores.precio?.let { { Text(it) } }
                     )
 
                     OutlinedTextField(
-                        value = stock,
-                        onValueChange = { stock = it },
+                        value = if (estado.stock == 0) "" else estado.stock.toString(),
+                        onValueChange = { viewModel.onStockChange(it) },
                         label = { Text("Stock") },
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        leadingIcon = { Icon(Icons.Filled.Inventory, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Filled.Inventory, contentDescription = null) },
+                        isError = estado.errores.stock != null,
+                        supportingText = estado.errores.stock?.let { { Text(it) } }
                     )
                 }
 
                 OutlinedTextField(
-                    value = origen,
-                    onValueChange = { origen = it },
+                    value = estado.origen,
+                    onValueChange = { viewModel.onOrigenChange(it) },
                     label = { Text("Origen (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Ej: Valparaíso, Región Metropolitana") },
-                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.LocationOn, contentDescription = null) },
+                    isError = estado.errores.origen != null,
+                    supportingText = estado.errores.origen?.let { { Text(it) } }
                 )
 
-                OutlinedTextField(
-                    value = linkImagen,
-                    onValueChange = { linkImagen = it },
-                    label = { Text("URL de imagen (opcional)") },
+                // Selector de imagen con vista previa
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("https://...") },
-                    leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) }
-                )
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Imagen del producto",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (estado.errores.linkImagen != null) Color.Red else Color.Gray
+                    )
+                    
+                    // Vista previa de la imagen
+                    if (selectedImageUri != null || estado.linkImagen.isNotEmpty()) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(200.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                AsyncImage(
+                                    model = selectedImageUri ?: estado.linkImagen,
+                                    contentDescription = "Vista previa",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                                
+                                // Botón para quitar imagen
+                                IconButton(
+                                    onClick = { viewModel.clearImage() },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp),
+                                    colors = IconButtonDefaults.iconButtonColors(
+                                        containerColor = Color.White.copy(alpha = 0.7f)
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Close,
+                                        contentDescription = "Quitar imagen",
+                                        tint = Color.Red
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Botones de acción para imagen
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { imagePickerLauncher.launch("image/*") },
+                            modifier = Modifier.weight(1f),
+                            enabled = !uploadingImage && !isLoading
+                        ) {
+                            Icon(Icons.Filled.Image, contentDescription = null)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (selectedImageUri != null || estado.linkImagen.isNotEmpty()) "Cambiar" else "Seleccionar")
+                        }
+                        
+                        if (selectedImageUri != null && estado.linkImagen.isEmpty()) {
+                            Button(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        val success = viewModel.uploadSelectedImage()
+                                        if (!success) {
+                                            Toast.makeText(
+                                                context,
+                                                "Error al subir la imagen",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Imagen subida exitosamente",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                enabled = !uploadingImage && !isLoading
+                            ) {
+                                if (uploadingImage) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = Color.White
+                                    )
+                                } else {
+                                    Icon(Icons.Filled.Upload, contentDescription = null)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Subir")
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Mensaje de error
+                    if (estado.errores.linkImagen != null) {
+                        Text(
+                            text = estado.errores.linkImagen!!,
+                            color = Color.Red,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
 
                 // Dropdown para categoría
                 ExposedDropdownMenuBox(
                     expanded = expanded,
                     onExpandedChange = { expanded = it }
                 ) {
-                    val categoriaLabel = when (idCategoria.toIntOrNull()) {
+                    val categoriaLabel = when (estado.idCategoria) {
                         1 -> "Frutas"
                         2 -> "Verduras"
                         3 -> "Lácteos"
@@ -1055,7 +1189,9 @@ fun ApiProductDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(),
-                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Filled.Category, contentDescription = null) },
+                        isError = estado.errores.idCategoria != null,
+                        supportingText = estado.errores.idCategoria?.let { { Text(it) } }
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
@@ -1071,7 +1207,7 @@ fun ApiProductDialog(
                             DropdownMenuItem(
                                 text = { Text(name) },
                                 onClick = {
-                                    idCategoria = id.toString()
+                                    viewModel.onIdCategoriaChange(id)
                                     expanded = false
                                 }
                             )
@@ -1095,8 +1231,8 @@ fun ApiProductDialog(
                         Text("Certificación Orgánica")
                     }
                     Switch(
-                        checked = certificacionOrganica,
-                        onCheckedChange = { certificacionOrganica = it }
+                        checked = estado.certificacionOrganica,
+                        onCheckedChange = { viewModel.onCertificacionOrganicaChange(it) }
                     )
                 }
 
@@ -1108,16 +1244,16 @@ fun ApiProductDialog(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            if (estaActivo) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                            if (estado.estaActivo) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
                             contentDescription = null,
-                            tint = if (estaActivo) Color(0xFF4CAF50) else Color.Gray
+                            tint = if (estado.estaActivo) Color(0xFF4CAF50) else Color.Gray
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Producto Activo")
                     }
                     Switch(
-                        checked = estaActivo,
-                        onCheckedChange = { estaActivo = it }
+                        checked = estado.estaActivo,
+                        onCheckedChange = { viewModel.onEstaActivoChange(it) }
                     )
                 }
 
@@ -1127,34 +1263,45 @@ fun ApiProductDialog(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
                     ) {
                         Text("Cancelar")
                     }
 
                     Button(
                         onClick = {
-                            val categoriaId = idCategoria.toIntOrNull() ?: 1
-                            val productoToSave = ProductoDto(
-                                idProducto = producto?.idProducto ?: generarIdProducto(categoriaId),
-                                nombre = nombre,
-                                linkImagen = if (linkImagen.isNotEmpty()) linkImagen else producto?.linkImagen,
-                                descripcion = descripcion,
-                                precio = precio.toIntOrNull() ?: 0,
-                                stock = stock.toIntOrNull() ?: 0,
-                                origen = origen.ifEmpty { null },
-                                certificacionOrganica = certificacionOrganica,
-                                estaActivo = estaActivo,
-                                fechaIngreso = producto?.fechaIngreso,
-                                idCategoria = categoriaId
-                            )
-                            onSave(productoToSave)
+                            // Validar formulario antes de guardar
+                            val esEdicion = producto != null
+                            if (viewModel.validarFormulario(esEdicion)) {
+                                val productoToSave = ProductoDto(
+                                    idProducto = producto?.idProducto ?: generarIdProducto(estado.idCategoria),
+                                    nombre = estado.nombre,
+                                    linkImagen = if (estado.linkImagen.isNotEmpty()) estado.linkImagen else producto?.linkImagen,
+                                    descripcion = estado.descripcion,
+                                    precio = estado.precio,
+                                    stock = estado.stock,
+                                    origen = estado.origen.ifEmpty { null },
+                                    certificacionOrganica = estado.certificacionOrganica,
+                                    estaActivo = estado.estaActivo,
+                                    fechaIngreso = producto?.fechaIngreso,
+                                    idCategoria = estado.idCategoria
+                                )
+                                onSave(productoToSave)
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = nombre.isNotEmpty() && descripcion.isNotEmpty() && 
-                                 precio.isNotEmpty() && stock.isNotEmpty()
+                        enabled = !isLoading
                     ) {
-                        Text(if (producto == null) "Crear" else "Actualizar")
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text(if (producto == null) "Crear" else "Actualizar")
+                        }
                     }
                 }
             }

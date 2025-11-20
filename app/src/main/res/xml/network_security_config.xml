@@ -5,11 +5,11 @@
         <!-- Microservicios en AWS (IPs públicas - NUEVAS) -->
         <domain includeSubdomains="true">34.193.190.24</domain>
         <domain includeSubdomains="true">34.202.46.121</domain>
-        
+
         <!-- Microservicios en AWS (IPs antiguas - por si acaso) -->
         <domain includeSubdomains="true">54.211.27.253</domain>
         <domain includeSubdomains="true">54.158.158.91</domain>
-        
+
         <!-- Para desarrollo local -->
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>

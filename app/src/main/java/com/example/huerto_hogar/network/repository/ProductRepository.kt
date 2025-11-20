@@ -218,4 +218,14 @@ class ProductRepository {
             apiService.deleteProduct(productId)
         }
     }
+
+    /**
+     * Obtener URL prefirmada para subir imagen a S3
+     */
+    suspend fun getPresignedUploadUrl(request: UploadUrlRequest): ApiResult<UploadUrlResponse> {
+        return safeApiCall {
+            apiService.getPresignedUploadUrl(request)
+        }
+    }
 }
+

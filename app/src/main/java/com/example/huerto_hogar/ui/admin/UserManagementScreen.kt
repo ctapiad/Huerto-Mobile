@@ -30,6 +30,8 @@ import com.example.huerto_hogar.data.enums.UserRole
 import com.example.huerto_hogar.network.repository.UserRepository
 import com.example.huerto_hogar.network.ApiResult
 import com.example.huerto_hogar.network.Usuario
+import com.example.huerto_hogar.viewmodel.UsuarioViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Date
 
 /**
@@ -759,13 +761,19 @@ fun ApiUserDialog(
     onDismiss: () -> Unit,
     onSave: (Usuario) -> Unit
 ) {
-    var nombre by remember { mutableStateOf(usuario?.nombre ?: "") }
-    var email by remember { mutableStateOf(usuario?.email ?: "") }
-    var password by remember { mutableStateOf(usuario?.password ?: "") }
-    var direccion by remember { mutableStateOf(usuario?.direccion ?: "") }
-    var telefono by remember { mutableStateOf(usuario?.telefono?.toString() ?: "") }
-    var selectedUserType by remember { mutableStateOf(usuario?.idTipoUsuario ?: 3) } // 3 = CLIENTE por defecto
+    val viewModel: UsuarioViewModel = viewModel()
+    val estado by viewModel.estado.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     var expanded by remember { mutableStateOf(false) }
+    
+    // Cargar datos del usuario si estamos editando
+    LaunchedEffect(usuario) {
+        if (usuario != null) {
+            viewModel.cargarUsuario(usuario)
+        } else {
+            viewModel.limpiarFormulario()
+        }
+    }
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
@@ -789,37 +797,49 @@ fun ApiUserDialog(
                 )
 
                 OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
+                    value = estado.nombre,
+                    onValueChange = { viewModel.onNombreChange(it) },
                     label = { Text("Nombre completo") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    isError = estado.errores.nombre != null,
+                    supportingText = if (estado.errores.nombre != null) {
+                        { Text(estado.errores.nombre!!) }
+                    } else null
                 )
 
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
+                    value = estado.email,
+                    onValueChange = { viewModel.onEmailChange(it) },
                     label = { Text("Email") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Email, contentDescription = null) },
+                    isError = estado.errores.email != null,
+                    supportingText = if (estado.errores.email != null) {
+                        { Text(estado.errores.email!!) }
+                    } else null
                 )
 
                 OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
+                    value = estado.password,
+                    onValueChange = { viewModel.onPasswordChange(it) },
                     label = { Text(if (usuario == null) "Contraseña" else "Nueva contraseña (dejar vacío para mantener)") },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Lock, contentDescription = null) },
+                    isError = estado.errores.password != null,
+                    supportingText = if (estado.errores.password != null) {
+                        { Text(estado.errores.password!!) }
+                    } else null
                 )
 
                 // Dropdown para tipo de usuario
-                val userTypeLabel = when (selectedUserType) {
+                val userTypeLabel = when (estado.idTipoUsuario) {
                     1 -> "ADMIN"
                     2 -> "VENDEDOR"
                     3 -> "CLIENTE"
-                    else -> "DESCONOCIDO"
+                    else -> "Seleccione tipo"
                 }
                 
                 ExposedDropdownMenuBox(
@@ -835,7 +855,11 @@ fun ApiUserDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .menuAnchor(),
-                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) }
+                        leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
+                        isError = estado.errores.idTipoUsuario != null,
+                        supportingText = if (estado.errores.idTipoUsuario != null) {
+                            { Text(estado.errores.idTipoUsuario!!) }
+                        } else null
                     )
                     ExposedDropdownMenu(
                         expanded = expanded,
@@ -849,7 +873,7 @@ fun ApiUserDialog(
                             DropdownMenuItem(
                                 text = { Text(name) },
                                 onClick = {
-                                    selectedUserType = id
+                                    viewModel.onIdTipoUsuarioChange(id)
                                     expanded = false
                                 }
                             )
@@ -858,20 +882,28 @@ fun ApiUserDialog(
                 }
 
                 OutlinedTextField(
-                    value = direccion,
-                    onValueChange = { direccion = it },
+                    value = estado.direccion,
+                    onValueChange = { viewModel.onDireccionChange(it) },
                     label = { Text("Dirección (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
-                    leadingIcon = { Icon(Icons.Filled.Home, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Home, contentDescription = null) },
+                    isError = estado.errores.direccion != null,
+                    supportingText = if (estado.errores.direccion != null) {
+                        { Text(estado.errores.direccion!!) }
+                    } else null
                 )
 
                 OutlinedTextField(
-                    value = telefono,
-                    onValueChange = { telefono = it },
+                    value = if (estado.telefono == 0) "" else estado.telefono.toString(),
+                    onValueChange = { viewModel.onTelefonoChange(it) },
                     label = { Text("Teléfono (opcional)") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) }
+                    leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) },
+                    isError = estado.errores.telefono != null,
+                    supportingText = if (estado.errores.telefono != null) {
+                        { Text(estado.errores.telefono!!) }
+                    } else null
                 )
 
                 Row(
@@ -880,39 +912,183 @@ fun ApiUserDialog(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        enabled = !isLoading
                     ) {
                         Text("Cancelar")
                     }
 
                     Button(
                         onClick = {
-                            val usuarioToSave = Usuario(
-                                id = usuario?.id,
-                                nombre = nombre,
-                                email = email,
-                                // Si es edición y password está vacío, usar el original
-                                password = if (usuario != null && password.isEmpty()) {
-                                    usuario.password
-                                } else if (password.isNotEmpty()) {
-                                    password
-                                } else {
-                                    "" // Para creación, password requerido (validado por enabled)
-                                },
-                                direccion = if (direccion.isNotEmpty()) direccion else null,
-                                telefono = telefono.toIntOrNull(),
-                                idComuna = usuario?.idComuna ?: 1,
-                                idTipoUsuario = selectedUserType,
-                                fechaRegistro = usuario?.fechaRegistro
-                            )
-                            onSave(usuarioToSave)
+                            // Validar formulario antes de guardar
+                            val esEdicion = usuario != null
+                            if (viewModel.validarFormulario(esEdicion)) {
+                                val usuarioToSave = Usuario(
+                                    id = usuario?.id,
+                                    nombre = estado.nombre,
+                                    email = estado.email,
+                                    password = if (usuario != null && estado.password.isEmpty()) {
+                                        usuario.password
+                                    } else if (estado.password.isNotEmpty()) {
+                                        estado.password
+                                    } else {
+                                        ""
+                                    },
+                                    direccion = if (estado.direccion.isNotEmpty()) estado.direccion else null,
+                                    telefono = if (estado.telefono > 0) estado.telefono else null,
+                                    idComuna = estado.idComuna,
+                                    idTipoUsuario = estado.idTipoUsuario,
+                                    fechaRegistro = usuario?.fechaRegistro
+                                )
+                                onSave(usuarioToSave)
+                            }
                         },
                         modifier = Modifier.weight(1f),
-                        enabled = nombre.isNotEmpty() && email.isNotEmpty() && 
-                                 (usuario != null || password.isNotEmpty()) // Password solo requerido al crear
+                        enabled = !isLoading
                     ) {
-                        Text(if (usuario == null) "Crear" else "Actualizar")
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.White
+                            )
+                        } else {
+                            Text(if (usuario == null) "Crear" else "Actualizar")
+                        }
                     }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Componente que muestra el resumen de los datos del formulario y los errores de validación
+ */
+@Composable
+fun ResumenUsuarioScreen(viewModel: UsuarioViewModel) {
+    val estado by viewModel.estado.collectAsState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Resumen del Usuario",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // Datos del formulario
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "Datos Ingresados",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text("Nombre: ${estado.nombre.ifEmpty { "(vacío)" }}")
+                Text("Email: ${estado.email.ifEmpty { "(vacío)" }}")
+                Text("Contraseña: ${"*".repeat(estado.password.length)}")
+                Text("Dirección: ${estado.direccion.ifEmpty { "(vacío)" }}")
+                Text("Teléfono: ${if (estado.telefono > 0) estado.telefono.toString() else "(vacío)"}")
+                
+                val tipoUsuario = when (estado.idTipoUsuario) {
+                    1 -> "ADMIN"
+                    2 -> "VENDEDOR"
+                    3 -> "CLIENTE"
+                    else -> "(no seleccionado)"
+                }
+                Text("Tipo de Usuario: $tipoUsuario")
+                Text("ID Comuna: ${estado.idComuna}")
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Errores de validación
+        val hayErrores = listOfNotNull(
+            estado.errores.nombre,
+            estado.errores.email,
+            estado.errores.password,
+            estado.errores.direccion,
+            estado.errores.telefono,
+            estado.errores.idComuna,
+            estado.errores.idTipoUsuario
+        ).isNotEmpty()
+        
+        if (hayErrores) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFFFEBEE)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = "⚠️ Errores de Validación",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFC62828),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    estado.errores.nombre?.let {
+                        Text("• Nombre: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.email?.let {
+                        Text("• Email: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.password?.let {
+                        Text("• Contraseña: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.direccion?.let {
+                        Text("• Dirección: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.telefono?.let {
+                        Text("• Teléfono: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.idComuna?.let {
+                        Text("• Comuna: $it", color = Color(0xFFC62828))
+                    }
+                    estado.errores.idTipoUsuario?.let {
+                        Text("• Tipo de Usuario: $it", color = Color(0xFFC62828))
+                    }
+                }
+            }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color(0xFFE8F5E9)
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Filled.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "✓ Todos los campos son válidos",
+                        color = Color(0xFF2E7D32),
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }

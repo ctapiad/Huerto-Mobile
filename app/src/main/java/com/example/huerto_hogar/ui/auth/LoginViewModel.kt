@@ -31,9 +31,9 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState = _uiState.asStateFlow()
 
-    // 3. Propiedades para los campos de texto
-    var email by mutableStateOf("")
-    var password by mutableStateOf("")
+    // 3. Propiedades para los campos de texto (con valores por defecto para facilitar testing)
+    var email by mutableStateOf("admin@profesor.duoc.cl")
+    var password by mutableStateOf("Admin*123")
 
     // 4. Función que ejecuta la acción de login
     fun login() {
