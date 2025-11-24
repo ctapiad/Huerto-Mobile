@@ -603,7 +603,7 @@ fun ApiUserDialog(
                 OutlinedTextField(
                     value = if (estado.telefono == 0) "" else estado.telefono.toString(),
                     onValueChange = { viewModel.onTelefonoChange(it) },
-                    label = { Text("Teléfono (opcional)") },
+                    label = { Text("Teléfono") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     leadingIcon = { Icon(Icons.Filled.Phone, contentDescription = null) },

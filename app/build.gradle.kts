@@ -18,6 +18,15 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../huerto-hogar-key.jks")
+            storePassword = "huerto2024"
+            keyAlias = "huerto-hogar"
+            keyPassword = "huerto2024"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -25,6 +34,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
+        }
+        debug {
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

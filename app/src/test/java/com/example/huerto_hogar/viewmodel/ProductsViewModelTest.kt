@@ -188,7 +188,7 @@ class ProductsViewModelTest {
         assertEquals(5, categories.size)
         assertEquals("Frutas", categories[0].name)
         assertEquals("Verduras", categories[1].name)
-        assertEquals("Carnes", categories[2].name)
+        assertEquals("Orgánicos", categories[2].name)
         assertEquals("Lácteos", categories[3].name)
         assertEquals("Granos", categories[4].name)
     }

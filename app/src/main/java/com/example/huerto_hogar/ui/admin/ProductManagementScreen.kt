@@ -562,7 +562,7 @@ fun ApiProductDialog(
         val prefijo = when(categoria) {
             1 -> "FR" // Frutas
             2 -> "VR" // Verduras
-            3 -> "PO" // Carnes (Pollo)
+            3 -> "OR" // Orgánicos
             4 -> "PL" // Lácteos (Productos Lácteos)
             5 -> "GR" // Granos
             else -> "PR" // Producto genérico

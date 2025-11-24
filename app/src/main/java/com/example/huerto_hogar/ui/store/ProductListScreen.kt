@@ -101,14 +101,26 @@ fun ProductListScreen(
                         FilterChip(
                             onClick = { selectedCategoryId = null },
                             label = { Text("Todos") },
-                            selected = selectedCategoryId == null
+                            selected = selectedCategoryId == null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 1.0f),
+                                labelColor = Color.White,
+                                selectedContainerColor = Color(0xFF2E7D32),
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                     items(productUiState.categories) { category ->
                         FilterChip(
                             onClick = { selectedCategoryId = category.id },
                             label = { Text(category.name) },
-                            selected = selectedCategoryId == category.id
+                            selected = selectedCategoryId == category.id,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 1.0f),
+                                labelColor = Color.White,
+                                selectedContainerColor = Color(0xFF2E7D32),
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                 }

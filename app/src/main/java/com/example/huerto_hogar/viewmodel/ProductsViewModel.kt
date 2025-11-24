@@ -35,7 +35,7 @@ class ProductsViewModel(application: Application) : AndroidViewModel(application
     private val hardcodedCategories = listOf(
         Categoria(id = 1, name = "Frutas", description = "Frutas frescas y de temporada"),
         Categoria(id = 2, name = "Verduras", description = "Verduras frescas y orgánicas"),
-        Categoria(id = 3, name = "Carnes", description = "Carnes y pollo de calidad"),
+        Categoria(id = 3, name = "Orgánicos", description = "Productos orgánicos certificados"),
         Categoria(id = 4, name = "Lácteos", description = "Productos lácteos frescos"),
         Categoria(id = 5, name = "Granos", description = "Granos y legumbres")
     )
