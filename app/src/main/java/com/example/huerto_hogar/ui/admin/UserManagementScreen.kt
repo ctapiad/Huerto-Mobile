@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +32,8 @@ import com.example.huerto_hogar.network.repository.UserRepository
 import com.example.huerto_hogar.network.ApiResult
 import com.example.huerto_hogar.network.Usuario
 import com.example.huerto_hogar.viewmodel.UsuarioViewModel
+import com.example.huerto_hogar.model.UsuarioUIState
+import com.example.huerto_hogar.model.UsuarioErrores
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.util.Date
 
@@ -561,7 +564,7 @@ fun ApiUserDialog(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = true),
                         leadingIcon = { Icon(Icons.Filled.Badge, contentDescription = null) },
                         isError = estado.errores.idTipoUsuario != null,
                         supportingText = if (estado.errores.idTipoUsuario != null) {
