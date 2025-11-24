@@ -41,17 +41,17 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 // Poner la UI en estado de carga
                 _uiState.update { it.copy(isLoading = true, errorMessage = null) }
-                
+
                 Log.d("LoginViewModel", "=== INICIO LOGIN ===")
                 Log.d("LoginViewModel", "Email: $email")
                 Log.d("LoginViewModel", "URL API: ${com.example.huerto_hogar.network.ApiConfig.USER_SERVICE_BASE_URL}")
-                
+
                 // Buscar usuario por email en MongoDB
                 when (val result = userRepository.getUserByEmail(email)) {
                     is ApiResult.Success -> {
                         val usuario = result.data
                         Log.d("LoginViewModel", "✅ Usuario encontrado: ${usuario.nombre}, Tipo: ${usuario.idTipoUsuario}")
-                        
+
                         // Verificar contraseña
                         if (usuario.password == password) {
                             // Convertir Usuario API a User local para compatibilidad
@@ -60,7 +60,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                                 2 -> com.example.huerto_hogar.data.enums.UserRole.VENDEDOR
                                 else -> com.example.huerto_hogar.data.enums.UserRole.CLIENTE
                             }
-                            
+
                             val user = User(
                                 id = usuario.id?.toLongOrNull() ?: 0L,
                                 name = usuario.nombre,
@@ -72,12 +72,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                                 comunaId = usuario.idComuna?.toLong() ?: 1L,
                                 role = userRole
                             )
-                            
+
                             // Establecer el usuario actual en el repositorio global
                             LocalDataRepository.setCurrentUser(user)
-                            
+
                             Log.d("LoginViewModel", "Login exitoso para: ${user.name}")
-                            
+
                             // Actualizar la UI con el éxito
                             _uiState.update { it.copy(isLoading = false, loginSuccess = user) }
                         } else {
@@ -89,13 +89,13 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                         Log.e("LoginViewModel", "❌ Error al buscar usuario")
                         Log.e("LoginViewModel", "Mensaje: ${result.message}")
                         Log.e("LoginViewModel", "Código: ${result.code}")
-                        
+
                         val errorMsg = when (result.code) {
                             404 -> "Usuario no encontrado. Verifica el email."
                             500 -> "Error en el servidor. Intenta más tarde."
                             else -> "Error: ${result.message}"
                         }
-                        
+
                         _uiState.update { it.copy(isLoading = false, errorMessage = errorMsg) }
                     }
                     else -> {

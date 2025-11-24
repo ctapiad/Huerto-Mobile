@@ -2,7 +2,6 @@ package com.example.huerto_hogar
 
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -35,7 +34,6 @@ import com.example.huerto_hogar.ui.admin.AdminDashboard
 import com.example.huerto_hogar.ui.user.UserProfileScreen
 import com.example.huerto_hogar.ui.order.PaymentSuccessScreen
 import com.example.huerto_hogar.ui.theme.HuertoHogarTheme
-import com.example.huerto_hogar.network.NetworkTestHelper
 import kotlinx.coroutines.launch
 
 object Routes {
@@ -54,9 +52,6 @@ class MainActivity : ComponentActivity() {
         Log.d("MainActivity", "onCreate started")
         
         try {
-            // 🧪 TEST: Probar conexión con microservicios (comentado para evitar crash)
-            // testMicroservicesConnection()
-            
             Log.d("MainActivity", "Setting content")
             setContent {
                 HuertoHogarTheme {
@@ -76,25 +71,6 @@ class MainActivity : ComponentActivity() {
             Log.e("MainActivity", "Fatal error in onCreate", e)
         }
     }
-    
-    private fun testMicroservicesConnection() {
-        NetworkTestHelper.testConnection { success, message ->
-            Log.d("NetworkTest", "=".repeat(50))
-            Log.d("NetworkTest", "TEST DE CONEXIÓN CON MICROSERVICIOS")
-            Log.d("NetworkTest", "=".repeat(50))
-            Log.d("NetworkTest", message)
-            Log.d("NetworkTest", "=".repeat(50))
-            
-            // Mostrar resultado en Toast
-            runOnUiThread {
-                Toast.makeText(
-                    this,
-                    if (success) "✅ APIs conectadas correctamente" else "❌ Error de conexión",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,11 +80,9 @@ fun AppNavigation() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val currentUser by LocalDataRepository.currentUser.collectAsState()
-    
-    // ViewModel compartido del carrito para toda la aplicación
     val sharedCartViewModel: CartViewModel = viewModel()
 
-    // Ahora el splash screen se maneja automáticamente por el sistema Android
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         scrimColor = Color.Black.copy(alpha = 0.5f),
@@ -126,15 +100,12 @@ fun AppNavigation() {
             )
         }
     ) {
-        // --- SOLUCIÓN: SCAFFOLD CENTRALIZADO ---
-        // Este Scaffold gestiona la UI principal, como la TopAppBar.
+
         Scaffold(
             topBar = {
-                // La barra superior ahora vive aquí, de forma central.
                 TopAppBar(
                     title = { Text("Huerto Hogar") },
                     navigationIcon = {
-                        // El botón de menú que abre el Drawer.
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(
                                 imageVector = Icons.Filled.Menu,
@@ -142,7 +113,6 @@ fun AppNavigation() {
                             )
                         }
                     },
-                    // Le damos un color semi-transparente para que se integre con el fondo.
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Black.copy(alpha = 0.3f),
                         titleContentColor = Color.White,
@@ -150,18 +120,15 @@ fun AppNavigation() {
                     )
                 )
             },
-            // El fondo del Scaffold debe ser transparente para dejar ver la imagen de fondo.
             containerColor = Color.Transparent
         ) { innerPadding ->
-            // El NavHost (que cambia las pantallas) ahora vive dentro del Scaffold.
+
             NavHost(
                 navController = navController,
                 startDestination = Routes.HOME,
-                // Aplicamos el padding de la TopAppBar para que el contenido no quede debajo de ella.
                 modifier = Modifier.padding(innerPadding)
             ) {
-                // HomeScreen ya no necesita gestionar el menú, solo existir.
-                // Esta llamada ahora es correcta porque HomeScreen() ya no tiene parámetros.
+
                 composable(Routes.HOME) {
                     HomeScreen(
                         onNavigateToCart = {
@@ -171,8 +138,6 @@ fun AppNavigation() {
                     )
                 }
 
-                // Las otras pantallas no se ven afectadas, pero se mostrarán
-                // debajo de la TopAppBar gracias al padding.
                 composable(Routes.LOGIN) {
                     LoginScreen(
                         onLoginSuccess = { user ->
@@ -190,7 +155,6 @@ fun AppNavigation() {
                     )
                 }
 
-                // Pantalla de productos con filtros por categoría
                 composable(Routes.PRODUCTS) {
                     ProductListScreen(
                         onLoginRequired = {
@@ -203,7 +167,6 @@ fun AppNavigation() {
                     )
                 }
 
-                // Pantalla de carrito de compras
                 composable(Routes.CART) {
                     CartScreen(
                         onLoginRequired = { navController.navigate(Routes.LOGIN) },
@@ -217,19 +180,16 @@ fun AppNavigation() {
                     )
                 }
 
-                // Pantalla de perfil de usuario
                 composable(Routes.USER_PROFILE) {
                     UserProfileScreen(
                         onLoginRequired = { navController.navigate(Routes.LOGIN) }
                     )
                 }
-                
-                // Dashboard de administrador - solo accesible para administradores
+
                 composable(Routes.ADMIN_DASHBOARD) {
                     AdminDashboard()
                 }
-                
-                // Pantalla de confirmación de pago exitoso
+
                 composable("${Routes.PAYMENT_SUCCESS}/{orderNumber}/{totalAmount}/{orderId}") { backStackEntry ->
                     val orderNumber = backStackEntry.arguments?.getString("orderNumber") ?: ""
                     val totalAmount = backStackEntry.arguments?.getString("totalAmount") ?: ""
@@ -245,7 +205,6 @@ fun AppNavigation() {
                         orderId = orderId
                     )
                 }
-                
 
             }
         }
@@ -268,14 +227,13 @@ fun AppDrawerContent(currentUser: User?, onNavigate: (String) -> Unit, onLogout:
             if (currentUser == null) {
                 NavigationDrawerItem(label = { Text("Iniciar Sesión") }, selected = false, onClick = { onNavigate(Routes.LOGIN) })
             } else {
-                // Opciones para usuarios logueados
                 NavigationDrawerItem(label = { Text("Mi Perfil") }, selected = false, onClick = { onNavigate(Routes.USER_PROFILE) })
                 
                 if (currentUser.role == UserRole.ADMIN) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                     NavigationDrawerItem(label = { Text("Dashboard Admin") }, selected = false, onClick = { onNavigate(Routes.ADMIN_DASHBOARD) })
                 }
-                
+
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
                 NavigationDrawerItem(label = { Text("Cerrar Sesión") }, selected = false, onClick = onLogout)
             }

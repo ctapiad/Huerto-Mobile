@@ -1,9 +1,7 @@
 package com.example.huerto_hogar.ui.order
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
@@ -17,9 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-import com.example.huerto_hogar.data.LocalDataRepository
 import com.example.huerto_hogar.data.model.Product
-import com.example.huerto_hogar.data.model.Pedido
 import com.example.huerto_hogar.data.model.DetallePedido
 import com.example.huerto_hogar.util.FormatUtils
 

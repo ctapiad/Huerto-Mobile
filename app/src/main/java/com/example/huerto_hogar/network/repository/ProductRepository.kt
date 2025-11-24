@@ -11,29 +11,11 @@ class ProductRepository {
     private val apiService = ProductApiClient.apiService
     
     /**
-     * Health check del servicio
-     */
-    suspend fun healthCheck(): ApiResult<String> {
-        return safeApiCall {
-            apiService.healthCheck()
-        }
-    }
-    
-    /**
      * Obtener todos los productos
      */
     suspend fun getAllProducts(): ApiResult<List<ProductoDto>> {
         return safeApiCall {
             apiService.getAllProducts()
-        }
-    }
-    
-    /**
-     * Obtener productos activos
-     */
-    suspend fun getActiveProducts(): ApiResult<List<ProductoDto>> {
-        return safeApiCall {
-            apiService.getActiveProducts()
         }
     }
     
@@ -47,56 +29,11 @@ class ProductRepository {
     }
     
     /**
-     * Obtener productos orgánicos
-     */
-    suspend fun getOrganicProducts(): ApiResult<List<ProductoDto>> {
-        return safeApiCall {
-            apiService.getOrganicProducts()
-        }
-    }
-    
-    /**
-     * Obtener productos con stock bajo
-     */
-    suspend fun getLowStockProducts(minStock: Int = 10): ApiResult<List<ProductoDto>> {
-        return safeApiCall {
-            apiService.getLowStockProducts(minStock)
-        }
-    }
-    
-    /**
-     * Obtener productos por categoría
-     */
-    suspend fun getProductsByCategory(categoryId: Int): ApiResult<List<ProductoDto>> {
-        return safeApiCall {
-            apiService.getProductsByCategory(categoryId)
-        }
-    }
-    
-    /**
-     * Obtener productos por rango de precio
-     */
-    suspend fun getProductsByPriceRange(minPrice: Int, maxPrice: Int): ApiResult<List<ProductoDto>> {
-        return safeApiCall {
-            apiService.getProductsByPriceRange(minPrice, maxPrice)
-        }
-    }
-    
-    /**
      * Buscar productos por nombre
      */
     suspend fun searchProducts(name: String): ApiResult<List<ProductoDto>> {
         return safeApiCall {
             apiService.searchProductsByName(name)
-        }
-    }
-    
-    /**
-     * Obtener producto por ID
-     */
-    suspend fun getProductById(productId: String): ApiResult<ProductoDto> {
-        return safeApiCall {
-            apiService.getProductById(productId)
         }
     }
     
@@ -189,24 +126,6 @@ class ProductRepository {
                     estaActivo = estaActivo
                 )
             )
-        }
-    }
-    
-    /**
-     * Actualizar solo el stock de un producto
-     */
-    suspend fun updateStock(productId: String, newStock: Int): ApiResult<Unit> {
-        return safeApiCall {
-            apiService.updateStock(productId, newStock)
-        }
-    }
-    
-    /**
-     * Desactivar un producto
-     */
-    suspend fun deactivateProduct(productId: String): ApiResult<Unit> {
-        return safeApiCall {
-            apiService.deactivateProduct(productId)
         }
     }
     

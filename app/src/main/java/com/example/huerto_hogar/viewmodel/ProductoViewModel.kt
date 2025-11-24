@@ -24,7 +24,6 @@ class ProductoViewModel(private val imageUploadService: ImageUploadService? = nu
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _operationResult = MutableStateFlow<String?>(null)
-    val operationResult: StateFlow<String?> = _operationResult
 
     private val _selectedImageUri = MutableStateFlow<Uri?>(null)
     val selectedImageUri: StateFlow<Uri?> = _selectedImageUri
@@ -33,12 +32,6 @@ class ProductoViewModel(private val imageUploadService: ImageUploadService? = nu
     val uploadingImage: StateFlow<Boolean> = _uploadingImage
 
     private val productRepository = ProductRepository()
-
-    fun onIdProductoChange(valor: String) {
-        // Convertir a mayúsculas automáticamente
-        val valorMayusculas = valor.uppercase()
-        _estado.update { it.copy(idProducto = valorMayusculas, errores = it.errores.copy(idProducto = null)) }
-    }
 
     fun onNombreChange(valor: String) {
         _estado.update { it.copy(nombre = valor, errores = it.errores.copy(nombre = null)) }
@@ -56,10 +49,6 @@ class ProductoViewModel(private val imageUploadService: ImageUploadService? = nu
     fun onStockChange(valor: String) {
         val stockInt = valor.toIntOrNull() ?: 0
         _estado.update { it.copy(stock = stockInt, errores = it.errores.copy(stock = null)) }
-    }
-
-    fun onLinkImagenChange(valor: String) {
-        _estado.update { it.copy(linkImagen = valor, errores = it.errores.copy(linkImagen = null)) }
     }
 
     fun onOrigenChange(valor: String) {
@@ -238,83 +227,5 @@ class ProductoViewModel(private val imageUploadService: ImageUploadService? = nu
         _estado.value = ProductoUIState()
         _operationResult.value = null
         _selectedImageUri.value = null
-    }
-
-    fun crearProducto(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (!validarFormulario(esEdicion = false)) {
-            onError("Por favor corrija los errores en el formulario")
-            return
-        }
-
-        val estadoActual = _estado.value
-        
-        viewModelScope.launch {
-            _isLoading.value = true
-            
-            when (val result = productRepository.createProduct(
-                idProducto = estadoActual.idProducto,
-                nombre = estadoActual.nombre,
-                linkImagen = estadoActual.linkImagen.ifEmpty { null },
-                descripcion = estadoActual.descripcion,
-                precio = estadoActual.precio,
-                stock = estadoActual.stock,
-                idCategoria = estadoActual.idCategoria,
-                origen = estadoActual.origen.ifEmpty { null },
-                certificacionOrganica = estadoActual.certificacionOrganica,
-                estaActivo = estadoActual.estaActivo
-            )) {
-                is ApiResult.Success -> {
-                    _operationResult.value = "Producto creado exitosamente"
-                    limpiarFormulario()
-                    onSuccess()
-                }
-                is ApiResult.Error -> {
-                    _operationResult.value = result.message
-                    onError(result.message)
-                }
-                else -> {}
-            }
-            
-            _isLoading.value = false
-        }
-    }
-
-    fun actualizarProducto(id: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
-        if (!validarFormulario(esEdicion = true)) {
-            onError("Por favor corrija los errores en el formulario")
-            return
-        }
-
-        val estadoActual = _estado.value
-        
-        viewModelScope.launch {
-            _isLoading.value = true
-            
-            when (val result = productRepository.updateProduct(
-                productId = id,
-                nombre = estadoActual.nombre,
-                linkImagen = estadoActual.linkImagen.ifEmpty { null },
-                descripcion = estadoActual.descripcion,
-                precio = estadoActual.precio,
-                stock = estadoActual.stock,
-                idCategoria = estadoActual.idCategoria,
-                origen = estadoActual.origen.ifEmpty { null },
-                certificacionOrganica = estadoActual.certificacionOrganica,
-                estaActivo = estadoActual.estaActivo
-            )) {
-                is ApiResult.Success -> {
-                    _operationResult.value = "Producto actualizado exitosamente"
-                    limpiarFormulario()
-                    onSuccess()
-                }
-                is ApiResult.Error -> {
-                    _operationResult.value = result.message
-                    onError(result.message)
-                }
-                else -> {}
-            }
-            
-            _isLoading.value = false
-        }
     }
 }

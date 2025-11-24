@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import com.example.huerto_hogar.data.LocalDataRepository
-import com.example.huerto_hogar.data.model.User
 import com.example.huerto_hogar.data.enums.UserRole
 import com.example.huerto_hogar.viewmodel.AuthViewModel
 
@@ -33,8 +32,6 @@ fun UserProfileScreen(
     authViewModel: AuthViewModel = viewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
     currentUser?.let { user ->
         UserProfileContent(

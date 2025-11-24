@@ -18,7 +18,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.Image
 import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.R
@@ -26,6 +25,7 @@ import com.example.huerto_hogar.data.LocalDataRepository
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
 import com.example.huerto_hogar.viewmodel.CartViewModel
+import com.example.huerto_hogar.viewmodel.ProductsViewModel
 
 /**
  * Pantalla principal de productos con filtros por categoría y FAB del carrito
@@ -34,10 +34,10 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 fun ProductListScreen(
     onLoginRequired: () -> Unit,
     onNavigateToCart: () -> Unit = {},
-    productViewModel: ProductViewModel = viewModel(),
+    productsViewModel: ProductsViewModel = viewModel(),
     cartViewModel: CartViewModel
 ) {
-    val productUiState by productViewModel.uiState.collectAsState()
+    val productUiState by productsViewModel.uiState.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val currentUser by LocalDataRepository.currentUser.collectAsState()
     val context = LocalContext.current

@@ -1,9 +1,7 @@
 package com.example.huerto_hogar.ui.store
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Remove
@@ -33,26 +30,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.example.huerto_hogar.R
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
 import com.example.huerto_hogar.viewmodel.CartViewModel
+import com.example.huerto_hogar.viewmodel.ProductsViewModel
 
-/**
- * La pantalla de inicio renovada con carrusel de productos destacados,
- * información de la aplicación y footer con contacto.
- */
 @Composable
 fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
-    productViewModel: ProductViewModel = viewModel(),
+    productsViewModel: ProductsViewModel = viewModel(),
     cartViewModel: CartViewModel
 ) {
-    val productUiState by productViewModel.uiState.collectAsState()
+    val productUiState by productsViewModel.uiState.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
-    
-    // Calcular el total de productos en el carrito
     val cartItemCount = cartItems.values.sumOf { it.quantity }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -163,15 +154,12 @@ fun FeaturedProductsCarousel(
     onAddToCart: (Product, Int) -> Result<Unit>
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Filtrar productos destacados (primeros 4 productos como ejemplo)
+
     val featuredProducts = products.take(4)
     
     Column(
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
-        // Título con fondo blanco centrado
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -255,7 +243,6 @@ fun FeaturedProductCard(
     product: Product,
     onAddToCart: (quantity: Int) -> Unit
 ) {
-    val context = LocalContext.current
     var quantity by remember { mutableIntStateOf(1) }
     
     Card(

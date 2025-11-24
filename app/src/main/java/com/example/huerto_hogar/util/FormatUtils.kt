@@ -16,15 +16,7 @@ object FormatUtils {
         val formatter = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
         return formatter.format(price).replace("CLP", "").trim()
     }
-    
-    /**
-     * Formatea un número entero con separadores de miles
-     * Ejemplo: 1200 -> "1.200"
-     */
-    fun formatNumber(number: Int): String {
-        val formatter = NumberFormat.getNumberInstance(Locale("es", "CL"))
-        return formatter.format(number)
-    }
+
     
     /**
      * Formatea un precio con su unidad

@@ -276,7 +276,6 @@ fun CartItemCard(
     onUpdateQuantity: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
-    val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(

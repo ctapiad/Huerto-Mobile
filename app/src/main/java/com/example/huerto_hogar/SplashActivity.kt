@@ -15,24 +15,22 @@ class SplashActivity : ComponentActivity() {
         Log.d("SplashActivity", "onCreate started")
         
         try {
-            // Usar el layout XML simple
             setContentView(R.layout.activity_splash)
             Log.d("SplashActivity", "setContentView successful")
-            
-            // Retrasar por 2.5 segundos y luego ir a MainActivity
+
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
                     Log.d("SplashActivity", "Starting MainActivity")
                     val intent = Intent(this, MainActivity::class.java)
                     startActivity(intent)
-                    finish() // Cerrar SplashActivity para que no se pueda volver
+                    finish()
                 } catch (e: Exception) {
                     Log.e("SplashActivity", "Error starting MainActivity", e)
                 }
             }, 2500) // 2.5 segundos
         } catch (e: Exception) {
             Log.e("SplashActivity", "Error in onCreate", e)
-            // Si falla, intentar ir directo a MainActivity
+
             try {
                 val intent = Intent(this, MainActivity::class.java)
                 startActivity(intent)

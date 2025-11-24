@@ -80,14 +80,6 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         _shoppingCart.value = mutableMapOf()
     }
     
-    fun getCartTotal(): Double {
-        return _shoppingCart.value.values.sumOf { it.product.price * it.quantity }
-    }
-    
-    fun getCartItemCount(): Int {
-        return _shoppingCart.value.values.sumOf { it.quantity }
-    }
-    
     fun getCartItems(): List<CartItem> {
         return _shoppingCart.value.values.toList()
     }
