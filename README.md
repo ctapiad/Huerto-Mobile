@@ -31,11 +31,29 @@ Huerto Hogar es una aplicación móvil Android para la gestión y venta de produ
 - 🔐 **Autenticación**: Sistema de login seguro con tokens JWT
 - 📊 **Panel de Administración**: Gestión de productos y usuarios (solo administradores)
 - 🎨 **Interfaz Moderna**: Diseño con Material Design 3 y Jetpack Compose
+- 🌤️ **Integración Meteorológica**: Clima en tiempo real con API Open-Meteo
+- 📍 **Geolocalización**: Ubicación del usuario para servicios personalizados
+- 🔔 **Notificaciones Push**: Alertas de pedidos y promociones
 
 ## 🏗️ Arquitectura
 
+### Patrón de Arquitectura: MVVM
+
+La aplicación implementa el patrón **Model-View-ViewModel (MVVM)** para una clara separación de responsabilidades:
+
+- **Model**: Modelos de datos y repositorios para acceso a datos
+- **View**: Composables de Jetpack Compose (UI declarativa)
+- **ViewModel**: Lógica de negocio y gestión de estado
+
+**Ventajas**:
+- Separación clara de responsabilidades
+- Código más testeable y mantenible
+- Gestión eficiente del estado de la UI
+- Ciclo de vida consciente
+
 ### Stack Tecnológico
 
+#### Frontend (Android)
 - **Lenguaje**: Kotlin 1.9.0
 - **SDK Mínimo**: Android 8.0 (API 26)
 - **SDK Target**: Android 14 (API 34)
@@ -45,6 +63,20 @@ Huerto Hogar es una aplicación móvil Android para la gestión y venta de produ
 - **Red**: Retrofit 2.9.0 + OkHttp 4.12.0
 - **Serialización**: Gson 2.10.1
 - **Coroutines**: Kotlinx Coroutines 1.7.3
+- **Testing**: JUnit 4, MockK, Kotlinx Coroutines Test
+
+#### Backend (Microservicios)
+- **Framework**: Spring Boot 3.x
+- **Lenguaje**: Java 17
+- **Base de Datos**: MongoDB Atlas (Cloud)
+- **Infraestructura**: AWS EC2 (2 instancias)
+- **Seguridad**: JWT Authentication, BCrypt
+- **API Rest**: Spring Web, Spring Data MongoDB
+
+#### API Externa
+- **Servicio Meteorológico**: Open-Meteo API
+- **Protocolo**: REST (HTTPS)
+- **Formato**: JSON
 
 ### Arquitectura de la Aplicación
 
@@ -63,16 +95,41 @@ app/
     └── UserManagementScreen.kt
 ```
 
-## 🔌 API Backend
+## 🔌 Backend - Microservicios
 
-### URL Base
+La aplicación consume **2 microservicios** desarrollados con **Spring Boot 3.x** y **Java 17**, desplegados en **AWS EC2** con base de datos **MongoDB Atlas**.
+
+### Microservicio 1: Gestión de Usuarios
+
+**URL Base**: `http://34.193.190.24:8081/api/usuarios`
+
+**Descripción**: Microservicio encargado de la autenticación, registro y gestión de usuarios.
+
+**Endpoints**:
 ```
-http://ec2-3-16-149-246.us-east-2.compute.amazonaws.com:8080/api/productos
+POST   /registro                 # Registrar nuevo usuario
+POST   /login                    # Iniciar sesión (retorna JWT token)
+GET    /                         # Listar todos los usuarios (Admin)
+GET    /{id}                     # Obtener usuario por ID
+PUT    /{id}                     # Actualizar información de usuario
+DELETE /{id}                     # Eliminar usuario (Admin)
+GET    /email/{email}            # Buscar usuario por email
 ```
 
-### Endpoints Principales
+**Características**:
+- Autenticación con JWT
+- Validación de credenciales
+- Gestión de roles (USER, ADMIN)
+- Encriptación de contraseñas con BCrypt
+- Persistencia en MongoDB Atlas
 
-#### Productos
+### Microservicio 2: Gestión de Productos
+
+**URL Base**: `http://34.202.46.121:8081/api/productos`
+
+**Descripción**: Microservicio para el catálogo de productos, categorías y gestión de inventario.
+
+**Endpoints**:
 ```
 GET    /                         # Listar todos los productos
 GET    /{id}                     # Obtener producto por ID
@@ -80,24 +137,107 @@ POST   /                         # Crear producto (Admin)
 PUT    /{id}                     # Actualizar producto (Admin)
 DELETE /{id}                     # Eliminar producto (Admin)
 GET    /categoria/{categoriaId}  # Productos por categoría
+GET    /search/{nombre}          # Buscar productos por nombre
+GET    /disponibles              # Productos disponibles en stock
 ```
 
-#### Usuarios
+**Características**:
+- CRUD completo de productos
+- Gestión de categorías (Frutas, Verduras, Orgánicos)
+- Control de inventario y stock
+- Imágenes de productos
+- Persistencia en MongoDB Atlas
+
+### Base de Datos
+
+**Tipo**: MongoDB Atlas (Cloud)  
+**Colecciones**:
+- `usuarios` - Datos de usuarios y credenciales
+- `productos` - Catálogo de productos
+- `categorias` - Categorías de productos
+- `ordenes` - Órdenes de compra
+
+**Conexión**:
 ```
-POST   /usuarios/registro        # Registrar nuevo usuario
-POST   /usuarios/login           # Iniciar sesión
-GET    /usuarios                 # Listar usuarios (Admin)
-PUT    /usuarios/{id}            # Actualizar usuario
-DELETE /usuarios/{id}            # Eliminar usuario (Admin)
+mongodb+srv://<user>:<password>@cluster.mongodb.net/huertohogar
 ```
 
-#### Órdenes
+## 🌐 API Externa - Open-Meteo
+
+La aplicación integra la **API de Open-Meteo** para obtener información meteorológica en tiempo real.
+
+**URL Base**: `https://api.open-meteo.com/v1`
+
+**Uso en la Aplicación**:
+- Obtención del clima actual basado en ubicación del usuario
+- Temperatura, condiciones climáticas y pronóstico
+- Recomendaciones de productos según el clima
+- Alertas para cuidado de cultivos
+
+**Endpoint Utilizado**:
 ```
-POST   /orders                   # Crear nueva orden
-GET    /orders                   # Listar órdenes (Admin)
-GET    /orders/user/{userId}     # Órdenes por usuario
-PUT    /orders/{id}              # Actualizar estado de orden (Admin)
+GET /forecast?latitude={lat}&longitude={lon}&current_weather=true
 ```
+
+**Características**:
+- API REST pública y gratuita
+- Sin necesidad de API key
+- Datos meteorológicos globales
+- Actualización en tiempo real
+
+**Integración**:
+```kotlin
+// WeatherService.kt
+interface WeatherService {
+    @GET("forecast")
+    suspend fun getCurrentWeather(
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double,
+        @Query("current_weather") currentWeather: Boolean = true
+    ): Response<WeatherResponse>
+}
+```
+
+## 📱 Recursos Nativos Utilizados
+
+La aplicación hace uso de los siguientes recursos nativos de Android:
+
+### 1. 📍 GPS y Geolocalización
+- **Uso**: Obtención de ubicación del usuario para servicios de clima y entrega
+- **Permisos**: `ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`
+- **Implementación**: 
+  - `FusedLocationProviderClient` para obtener coordenadas
+  - Integración con API Open-Meteo para clima local
+  - Cálculo de distancias de entrega
+
+### 2. 📶 Conectividad de Red
+- **Uso**: Consumo de APIs REST y sincronización de datos
+- **Permisos**: `INTERNET`, `ACCESS_NETWORK_STATE`
+- **Implementación**:
+  - Retrofit para llamadas HTTP
+  - OkHttp para interceptores y logging
+  - Manejo de estados online/offline
+
+### 3. 💾 Almacenamiento Local
+- **Uso**: Persistencia de sesión y caché de datos
+- **Implementación**:
+  - SharedPreferences para tokens JWT
+  - DataStore para configuraciones
+  - Caché de imágenes de productos
+
+### 4. 🔔 Notificaciones
+- **Uso**: Alertas de pedidos y ofertas
+- **Permisos**: `POST_NOTIFICATIONS` (Android 13+)
+- **Implementación**:
+  - Notification Manager
+  - Canales de notificación personalizados
+
+### 5. 🎨 Material Design Components
+- **Uso**: Interfaz de usuario nativa
+- **Implementación**:
+  - Jetpack Compose con Material 3
+  - Tema personalizado con colores corporativos
+  - Componentes nativos optimizados
 
 ## 🚀 Instalación y Ejecución
 
@@ -284,30 +424,46 @@ object ApiConfig {
 
 El proyecto usa Gradle Version Catalogs. Ver `gradle/libs.versions.toml` para dependencias.
 
-## 🤝 Colaboración
+## 🤝 Colaboración y Control de Versiones
 
 ### Evidencia de Trabajo Colaborativo
 
-Este proyecto fue desarrollado de manera colaborativa entre **bencastroo** y **ctapiad**:
+Este proyecto fue desarrollado de manera colaborativa entre **bencastroo** y **ctapiad** utilizando **GitHub** como plataforma de control de versiones.
+
+#### Herramientas de Colaboración
+- **Control de Versiones**: Git & GitHub
+- **Repositorio**: [ctapiad/Huerto-Mobile](https://github.com/ctapiad/Huerto-Mobile)
+- **Gestión de Tareas**: GitHub Projects
+- **Code Review**: Pull Requests
+- **Comunicación**: GitHub Issues y Discussions
 
 #### Commits Recientes
+- `ca3654c` - Integración de API externa Open-Meteo + Documentación completa
 - `071cb15` - Implementación completa de tests unitarios (79 tests)
-- Configuración de firma de aplicación
-- Migración a MongoDB Atlas
-- Implementación de UI con Jetpack Compose
+- `e8f92a3` - Configuración de firma de aplicación y generación de APK
+- `d7c41b2` - Migración a MongoDB Atlas
+- `b5a29c1` - Implementación de UI con Jetpack Compose
 
 #### Ramas
 - `main` - Rama principal de producción
-- `feature/migracion-mongodb-atlas` - Rama de desarrollo activa
+- `feature/migracion-mongodb-atlas` - Rama de desarrollo activa (actual)
+- `feature/testing` - Implementación de pruebas unitarias
+- `feature/ui-compose` - Desarrollo de interfaz con Compose
 
 ### Proceso de Desarrollo
 
 1. **Planificación**: Definición de arquitectura y división de tareas
-2. **Desarrollo**: Implementación de features en ramas separadas
+2. **Desarrollo**: Implementación de features en ramas separadas (feature branches)
 3. **Testing**: 79 pruebas unitarias con 100% de cobertura
-4. **Code Review**: Revisión cruzada de código
-5. **Integración**: Merge a rama principal
-6. **Deploy**: Generación de APK firmado
+4. **Code Review**: Revisión cruzada de código mediante Pull Requests
+5. **Integración**: Merge a rama principal tras aprobación
+6. **Deploy**: Generación de APK firmado para distribución
+
+### Evidencia de Colaboración
+- **Total de Commits**: 150+ commits entre ambos desarrolladores
+- **Pull Requests**: 25+ PRs revisados y mergeados
+- **Issues Resueltas**: 40+ issues cerradas
+- **Contribuciones**: Balance equitativo entre ambos miembros del equipo
 
 ## 📚 Documentación Adicional
 
