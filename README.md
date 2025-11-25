@@ -28,7 +28,7 @@ Huerto Hogar es una aplicación móvil Android para la gestión y venta de produ
 - 📦 **Catálogo de Productos**: Navegación por categorías (Frutas, Verduras, Orgánicos)
 - 👤 **Gestión de Usuarios**: Registro, login y administración de perfiles
 - 📋 **Gestión de Pedidos**: Creación y seguimiento de órdenes
-- 🔐 **Autenticación**: Sistema de login seguro con tokens JWT
+- 🔐 **Autenticación**: Sistema de login con validación de credenciales
 - 📊 **Panel de Administración**: Gestión de productos y usuarios (solo administradores)
 - 🎨 **Interfaz Moderna**: Diseño con Material Design 3 y Jetpack Compose
 - 🌤️ **Integración Meteorológica**: Clima en tiempo real con API Open-Meteo
@@ -70,7 +70,7 @@ La aplicación implementa el patrón **Model-View-ViewModel (MVVM)** para una cl
 - **Lenguaje**: Java 17
 - **Base de Datos**: MongoDB Atlas (Cloud)
 - **Infraestructura**: AWS EC2 (2 instancias)
-- **Seguridad**: JWT Authentication, BCrypt
+- **Seguridad**: Autenticación básica por credenciales
 - **API Rest**: Spring Web, Spring Data MongoDB
 
 #### API Externa
@@ -107,20 +107,22 @@ La aplicación consume **2 microservicios** desarrollados con **Spring Boot 3.x*
 
 **Endpoints**:
 ```
-POST   /registro                 # Registrar nuevo usuario
-POST   /login                    # Iniciar sesión (retorna JWT token)
 GET    /                         # Listar todos los usuarios (Admin)
 GET    /{id}                     # Obtener usuario por ID
-PUT    /{id}                     # Actualizar información de usuario
-DELETE /{id}                     # Eliminar usuario (Admin)
+GET    /{id}/dto                 # Obtener usuario DTO (sin password)
 GET    /email/{email}            # Buscar usuario por email
+GET    /buscar/{nombre}          # Buscar usuarios por nombre
+GET    /tipo/{idTipoUsuario}     # Obtener usuarios por tipo
+POST   /                         # Crear nuevo usuario
+PUT    /                         # Actualizar información de usuario
+DELETE /{id}                     # Eliminar usuario (Admin)
 ```
 
 **Características**:
-- Autenticación con JWT
+- Autenticación por email y contraseña
 - Validación de credenciales
-- Gestión de roles (USER, ADMIN)
-- Encriptación de contraseñas con BCrypt
+- Gestión de roles (ADMIN, VENDEDOR, CLIENTE)
+- Almacenamiento de contraseñas (texto plano - para desarrollo)
 - Persistencia en MongoDB Atlas
 
 ### Microservicio 2: Gestión de Productos
@@ -221,9 +223,9 @@ La aplicación hace uso de los siguientes recursos nativos de Android:
 ### 3. 💾 Almacenamiento Local
 - **Uso**: Persistencia de sesión y caché de datos
 - **Implementación**:
-  - SharedPreferences para tokens JWT
-  - DataStore para configuraciones
-  - Caché de imágenes de productos
+  - LocalDataRepository para gestión de sesión de usuario
+  - SharedPreferences para preferencias
+  - Caché en memoria de datos del usuario activo
 
 ### 4. 🔔 Notificaciones
 - **Uso**: Alertas de pedidos y ofertas
