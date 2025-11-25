@@ -5,18 +5,21 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.huerto_hogar.data.LocalDataRepository
 import com.example.huerto_hogar.data.dto.CartItem
-import com.example.huerto_hogar.data.enums.OrderStatus
 import com.example.huerto_hogar.data.model.*
-import com.example.huerto_hogar.database.repository.DatabaseRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import java.util.Date
+import kotlinx.coroutines.delay
 
+/**
+ * CartViewModel - Carrito FICTICIO sin persistencia
+ * 
+ * Este ViewModel maneja el carrito de compras en memoria únicamente.
+ * NO guarda pedidos en ninguna base de datos (ni Room ni MongoDB).
+ * Simula la creación de un pedido exitoso sin almacenarlo.
+ */
 class CartViewModel(application: Application) : AndroidViewModel(application) {
     
-    private val databaseRepository = DatabaseRepository(application)
-    
-    // Estados del carrito - AHORA MANEJADOS AQUÍ
+    // Estados del carrito - SOLO EN MEMORIA
     private val _shoppingCart = MutableStateFlow<MutableMap<String, CartItem>>(mutableMapOf())
     val cartItems = _shoppingCart.asStateFlow()
     
@@ -77,19 +80,16 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         _shoppingCart.value = mutableMapOf()
     }
     
-    fun getCartTotal(): Double {
-        return _shoppingCart.value.values.sumOf { it.product.price * it.quantity }
-    }
-    
-    fun getCartItemCount(): Int {
-        return _shoppingCart.value.values.sumOf { it.quantity }
-    }
-    
     fun getCartItems(): List<CartItem> {
         return _shoppingCart.value.values.toList()
     }
     
-    // Método para crear pedido usando SQLite
+    /**
+     * Método FICTICIO para crear pedido - NO PERSISTE DATOS
+     * 
+     * Simula la creación exitosa de un pedido sin guardarlo en ninguna base de datos.
+     * Retorna un ID ficticio para mostrar en la UI de confirmación.
+     */
     fun createOrderFromCart(deliveryAddress: String, callback: (Result<Long>) -> Unit) {
         val user = currentUser.value
         if (user == null) {
@@ -105,56 +105,26 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         
         viewModelScope.launch {
             try {
-                // Calcular totales
+                // Simular un pequeño delay de procesamiento
+                delay(500)
+                
+                // Calcular totales (solo para mostrar en UI)
                 val subtotal = cartItemsList.sumOf { it.product.price * it.quantity }
                 val deliveryFee = if (subtotal >= 50000) 0.0 else 3000.0
                 val total = subtotal + deliveryFee
                 
-                // Crear pedido
-                val newOrder = Pedido(
-                    id = 0, // Se auto-genera en la base de datos
-                    orderDate = Date(),
-                    deliveryDate = null,
-                    total = total,
-                    deliveryAddress = deliveryAddress,
-                    userId = user.id,
-                    status = OrderStatus.PENDIENTE
-                )
+                // Generar un ID ficticio aleatorio para el "pedido"
+                val fictitiousOrderId = (1000..9999).random().toLong()
                 
-                // Insertar pedido en SQLite
-                val orderId = insertOrderWithDetails(newOrder, cartItemsList)
+                // Limpiar carrito después de "crear" el pedido
+                clearCart()
                 
-                if (orderId > 0) {
-                    // Limpiar carrito después de crear el pedido
-                    clearCart()
-                    callback(Result.success(orderId))
-                } else {
-                    callback(Result.failure(Exception("Error al crear el pedido")))
-                }
+                // Retornar éxito con el ID ficticio
+                callback(Result.success(fictitiousOrderId))
                 
             } catch (e: Exception) {
                 callback(Result.failure(e))
             }
-        }
-    }
-    
-    private suspend fun insertOrderWithDetails(order: Pedido, cartItems: List<CartItem>): Long {
-        return try {
-            // Crear detalles del pedido
-            val orderDetails = cartItems.map { cartItem ->
-                DetallePedido(
-                    pedidoId = 0, // Se asignará automáticamente
-                    productId = cartItem.product.id,
-                    cantidad = cartItem.quantity,
-                    precioUnitario = cartItem.product.price,
-                    subtotal = cartItem.product.price * cartItem.quantity
-                )
-            }
-            
-            // Crear pedido completo usando DatabaseRepository
-            databaseRepository.createOrderWithDetails(order, orderDetails)
-        } catch (e: Exception) {
-            throw e
         }
     }
 }

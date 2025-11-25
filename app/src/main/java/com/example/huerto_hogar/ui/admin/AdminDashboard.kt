@@ -12,18 +12,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.compose.ui.platform.LocalContext
-import com.example.huerto_hogar.database.repository.DatabaseRepository
 import com.example.huerto_hogar.data.enums.UserRole
 import com.example.huerto_hogar.viewmodel.AuthViewModel
+import com.example.huerto_hogar.ui.test.ApiTestScreen
 
 /**
  * Pantalla principal del administrador con navegación por pestañas
  */
 @Composable
 fun AdminDashboard(
-    authViewModel: AuthViewModel = viewModel(),
-    databaseRepository: DatabaseRepository = DatabaseRepository(LocalContext.current)
+    authViewModel: AuthViewModel = viewModel()
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -78,7 +76,7 @@ fun AdminDashboard(
         val tabs = listOf(
             AdminTab("Usuarios", Icons.Filled.People),
             AdminTab("Productos", Icons.Filled.ShoppingCart),
-            AdminTab("Reportes", Icons.Filled.Analytics)
+            AdminTab("Test API", Icons.Filled.Code)
         )
 
         TabRow(
@@ -100,9 +98,9 @@ fun AdminDashboard(
 
         // Contenido de las pestañas
         when (selectedTabIndex) {
-            0 -> UserManagementScreen(databaseRepository)
-            1 -> ProductManagementScreen(databaseRepository)
-            2 -> ReportsScreen(databaseRepository)
+            0 -> UserManagementScreen()
+            1 -> ProductManagementScreen()
+            2 -> ApiTestScreen(onBack = {})
         }
     }
 }

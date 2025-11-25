@@ -3,11 +3,13 @@ package com.example.huerto_hogar.ui.store
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,7 +42,8 @@ fun CartScreen(
     onPaymentSuccess: (String, String, Long) -> Unit = { _, _, _ -> },
     cartViewModel: CartViewModel
 ) {
-    val cartItems by cartViewModel.cartItems.collectAsState()
+    val cartItemsMap by cartViewModel.cartItems.collectAsState()
+    val cartItemsList = remember(cartItemsMap) { cartItemsMap.values.toList() }
     val currentUser by cartViewModel.currentUser.collectAsState()
     val context = LocalContext.current
 
@@ -86,7 +89,7 @@ fun CartScreen(
                             color = Color.White
                         )
                         Text(
-                            text = "${cartItems.size} producto${if (cartItems.size != 1) "s" else ""} en tu carrito",
+                            text = "${cartItemsList.size} producto${if (cartItemsList.size != 1) "s" else ""} en tu carrito",
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.White.copy(alpha = 0.9f)
                         )
@@ -95,14 +98,14 @@ fun CartScreen(
             }
         }
 
-        if (cartItems.isEmpty()) {
+        if (cartItemsList.isEmpty()) {
             // Carrito vacío
             item {
                 EmptyCartCard()
             }
         } else {
             // Items del carrito
-            items(cartItems.values.toList()) { cartItem ->
+            items(cartItemsList) { cartItem ->
                 CartItemCard(
                     cartItem = cartItem,
                     onUpdateQuantity = { newQuantity ->
@@ -130,7 +133,7 @@ fun CartScreen(
             // Resumen del pedido
             item {
                 OrderSummaryCard(
-                    cartItems = cartItems.values.toList(),
+                    cartItems = cartItemsList,
                     isUserLoggedIn = currentUser != null,
                     onCheckout = {
                         currentUser?.let { user ->
@@ -141,12 +144,12 @@ fun CartScreen(
                                 user.address!!
                             }
                             
-                            // Crear pedido real en SQLite
+                            // Crear pedido ficticio
                             cartViewModel.createOrderFromCart(deliveryAddress) { result ->
                                 result.fold(
                                     onSuccess = { orderId ->
                                         // Calcular total para mostrar
-                                        val subtotal = cartItems.values.sumOf { cartItem ->
+                                        val subtotal = cartItemsList.sumOf { cartItem ->
                                             cartItem.product.price * cartItem.quantity
                                         }
                                         val deliveryFee = if (subtotal >= 50000) 0.0 else 3000.0
@@ -193,7 +196,7 @@ fun NoUserLoggedCard(onLoginRequired: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
-                Icons.Filled.Login,
+                Icons.AutoMirrored.Filled.Login,
                 contentDescription = "Login requerido",
                 modifier = Modifier.size(64.dp),
                 tint = Color(0xFF2196F3)
@@ -218,7 +221,7 @@ fun NoUserLoggedCard(onLoginRequired: () -> Unit) {
                     containerColor = Color(0xFF2196F3)
                 )
             ) {
-                Icon(Icons.Filled.Login, contentDescription = null)
+                Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Iniciar Sesión")
             }
@@ -273,7 +276,6 @@ fun CartItemCard(
     onUpdateQuantity: (Int) -> Unit,
     onRemove: () -> Unit
 ) {
-    val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -288,20 +290,16 @@ fun CartItemCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Imagen del producto
-            val imageResId = context.resources.getIdentifier(
-                cartItem.product.imageName,
-                "drawable",
-                context.packageName
-            )
-
-            Image(
-                painter = painterResource(id = if (imageResId != 0) imageResId else R.drawable.huertohogarfondo),
+            // Imagen del producto (desde URL o recurso local)
+            AsyncImage(
+                model = cartItem.product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                 contentDescription = cartItem.product.name,
                 modifier = Modifier
                     .size(80.dp)
                     .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.huertohogarfondo),
+                placeholder = painterResource(R.drawable.huertohogarfondo)
             )
 
             Spacer(modifier = Modifier.width(16.dp))
@@ -486,7 +484,7 @@ fun OrderSummaryCard(
                 )
             ) {
                 Icon(
-                    imageVector = if (isUserLoggedIn) Icons.Filled.Payment else Icons.Filled.Login,
+                    imageVector = if (isUserLoggedIn) Icons.Filled.Payment else Icons.AutoMirrored.Filled.Login,
                     contentDescription = null
                 )
                 Spacer(modifier = Modifier.width(8.dp))

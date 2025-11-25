@@ -1,9 +1,9 @@
 package com.example.huerto_hogar.ui.store
 
 import android.widget.Toast
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -30,27 +30,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import com.example.huerto_hogar.R
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
 import com.example.huerto_hogar.viewmodel.CartViewModel
+import com.example.huerto_hogar.viewmodel.ProductsViewModel
+import com.example.huerto_hogar.viewmodel.WeatherViewModel
 
-/**
- * La pantalla de inicio renovada con carrusel de productos destacados,
- * información de la aplicación y footer con contacto.
- */
 @Composable
 fun HomeScreen(
     onNavigateToCart: () -> Unit = {},
-    productViewModel: ProductViewModel = viewModel(),
-    cartViewModel: CartViewModel
+    productsViewModel: ProductsViewModel = viewModel(),
+    cartViewModel: CartViewModel,
+    weatherViewModel: WeatherViewModel = viewModel()
 ) {
-    val productUiState by productViewModel.uiState.collectAsState()
+    val productUiState by productsViewModel.uiState.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
-    
-    // Calcular el total de productos en el carrito
     val cartItemCount = cartItems.values.sumOf { it.quantity }
+    val weatherUiState by weatherViewModel.uiState.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -63,6 +60,11 @@ fun HomeScreen(
             // Sección de bienvenida e información de la app
             item {
                 WelcomeSection()
+            }
+            
+            // Widget de clima (API Externa)
+            item {
+                WeatherWidget(weatherUiState = weatherUiState)
             }
             
             // Carrusel de productos destacados
@@ -160,15 +162,12 @@ fun FeaturedProductsCarousel(
     onAddToCart: (Product, Int) -> Result<Unit>
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Filtrar productos destacados (primeros 4 productos como ejemplo)
+
     val featuredProducts = products.take(4)
     
     Column(
         modifier = Modifier.padding(horizontal = 16.dp)
     ) {
-        // Título con fondo blanco centrado
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -252,7 +251,6 @@ fun FeaturedProductCard(
     product: Product,
     onAddToCart: (quantity: Int) -> Unit
 ) {
-    val context = LocalContext.current
     var quantity by remember { mutableIntStateOf(1) }
     
     Card(
@@ -268,20 +266,16 @@ fun FeaturedProductCard(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Imagen del producto
-            val imageResId = context.resources.getIdentifier(
-                product.imageName, 
-                "drawable", 
-                context.packageName
-            )
-            
-            Image(
-                painter = painterResource(id = if (imageResId != 0) imageResId else R.drawable.huertohogarfondo),
+            // Imagen del producto (desde URL o recurso local)
+            AsyncImage(
+                model = product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                 contentDescription = product.name,
                 modifier = Modifier
                     .size(100.dp)
                     .clip(RoundedCornerShape(12.dp)),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                error = painterResource(R.drawable.huertohogarfondo),
+                placeholder = painterResource(R.drawable.huertohogarfondo)
             )
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -498,6 +492,118 @@ fun ContactItem(icon: androidx.compose.ui.graphics.vector.ImageVector, text: Str
     }
 }
 
+/**
+ * Widget compacto del clima consumiendo API externa Open-Meteo
+ * Demuestra consumo de API de terceros (diferente a microservicios propios)
+ */
+@Composable
+fun WeatherWidget(weatherUiState: com.example.huerto_hogar.viewmodel.WeatherUiState) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(70.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFE3F2FD)  // Azul claro sólido, más visible
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icono y ubicación
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "🌤️",
+                    fontSize = 24.sp
+                )
+                Column {
+                    Text(
+                        text = "Viña del Mar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0D47A1)  // Azul oscuro para mejor contraste
+                    )
+                    Text(
+                        text = "API Externa: Open-Meteo",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFF424242),  // Gris oscuro en lugar de Gray
+                        fontSize = 10.sp
+                    )
+                }
+            }
+            
+            // Datos del clima
+            when {
+                weatherUiState.isLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = Color(0xFF1976D2)
+                    )
+                }
+                weatherUiState.errorMessage != null -> {
+                    Text(
+                        text = "No disponible",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF424242),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                weatherUiState.weather != null -> {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Temperatura
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "🌡️",
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                text = "${weatherUiState.weather.temperature}°C",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0D47A1),  // Azul oscuro para mejor contraste
+                                fontSize = 16.sp
+                            )
+                        }
+                        
+                        // Viento
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "💨",
+                                fontSize = 18.sp
+                            )
+                            Text(
+                                text = "${weatherUiState.weather.windSpeed} km/h",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color(0xFF0D47A1),  // Azul oscuro para mejor contraste
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun SocialMediaItem(emoji: String, name: String) {
     Column(
@@ -515,3 +621,4 @@ fun SocialMediaItem(emoji: String, name: String) {
         )
     }
 }
+

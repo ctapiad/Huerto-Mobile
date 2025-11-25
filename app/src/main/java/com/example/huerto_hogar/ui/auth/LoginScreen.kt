@@ -6,7 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,7 +19,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.compose.ui.platform.LocalContext
 import com.example.huerto_hogar.data.model.User
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,9 +43,9 @@ fun LoginScreen(
 
     // 2. Observa el estado para manejar eventos (sin cambios)
     LaunchedEffect(uiState) {
-        if (uiState.loginSuccess != null) {
-            Toast.makeText(context, "¡Bienvenido, ${uiState.loginSuccess!!.name}!", Toast.LENGTH_SHORT).show()
-            onLoginSuccess(uiState.loginSuccess!!)
+        uiState.loginSuccess?.let { user ->
+            Toast.makeText(context, "¡Bienvenido, ${user.name}!", Toast.LENGTH_SHORT).show()
+            onLoginSuccess(user)
             loginViewModel.resetState()
         }
         if (uiState.errorMessage != null) {
@@ -63,7 +62,7 @@ fun LoginScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver"
                         )
                     }

@@ -18,13 +18,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.foundation.Image
+import coil.compose.AsyncImage
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.huerto_hogar.R
 import com.example.huerto_hogar.data.LocalDataRepository
 import com.example.huerto_hogar.data.model.Product
 import com.example.huerto_hogar.util.FormatUtils
 import com.example.huerto_hogar.viewmodel.CartViewModel
+import com.example.huerto_hogar.viewmodel.ProductsViewModel
 
 /**
  * Pantalla principal de productos con filtros por categoría y FAB del carrito
@@ -33,10 +34,10 @@ import com.example.huerto_hogar.viewmodel.CartViewModel
 fun ProductListScreen(
     onLoginRequired: () -> Unit,
     onNavigateToCart: () -> Unit = {},
-    productViewModel: ProductViewModel = viewModel(),
+    productsViewModel: ProductsViewModel = viewModel(),
     cartViewModel: CartViewModel
 ) {
-    val productUiState by productViewModel.uiState.collectAsState()
+    val productUiState by productsViewModel.uiState.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
     val currentUser by LocalDataRepository.currentUser.collectAsState()
     val context = LocalContext.current
@@ -100,14 +101,26 @@ fun ProductListScreen(
                         FilterChip(
                             onClick = { selectedCategoryId = null },
                             label = { Text("Todos") },
-                            selected = selectedCategoryId == null
+                            selected = selectedCategoryId == null,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 1.0f),
+                                labelColor = Color.White,
+                                selectedContainerColor = Color(0xFF2E7D32),
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                     items(productUiState.categories) { category ->
                         FilterChip(
                             onClick = { selectedCategoryId = category.id },
                             label = { Text(category.name) },
-                            selected = selectedCategoryId == category.id
+                            selected = selectedCategoryId == category.id,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = Color(0xFF4CAF50).copy(alpha = 1.0f),
+                                labelColor = Color.White,
+                                selectedContainerColor = Color(0xFF2E7D32),
+                                selectedLabelColor = Color.White
+                            )
                         )
                     }
                 }
@@ -262,29 +275,18 @@ fun SimpleProductCard(
                 verticalAlignment = Alignment.Top,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Imagen
+                // Imagen (desde URL o recurso local)
                 Card(
                     modifier = Modifier.size(80.dp),
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    val imageResId = when (product.imageName) {
-                        "manzana_funji" -> R.drawable.manzana_funji
-                        "naranjas_valencia" -> R.drawable.naranjas_valencia
-                        "platanos_cavendish" -> R.drawable.platanos_cavendish
-                        "zanahorias_organicas" -> R.drawable.zanahorias_organicas
-                        "espinacas_frescas" -> R.drawable.espinacas_frescas
-                        "pimientos_tricolores" -> R.drawable.pimientos_tricolores
-                        "miel_organica" -> R.drawable.miel_organica
-                        "quinua_organica" -> R.drawable.manzana_funji // Usar imagen existente
-                        "leche" -> R.drawable.leche
-                        else -> R.drawable.manzana_funji // Usar imagen por defecto existente
-                    }
-                    
-                    Image(
-                        painter = painterResource(imageResId),
+                    AsyncImage(
+                        model = product.imageName?.takeIf { it.startsWith("http") } ?: R.drawable.huertohogarfondo,
                         contentDescription = product.name,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = painterResource(R.drawable.huertohogarfondo),
+                        placeholder = painterResource(R.drawable.huertohogarfondo)
                     )
                 }
                 
